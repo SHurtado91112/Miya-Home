@@ -9,15 +9,9 @@ import SwiftUI
 
 @main
 struct MiyaApp: App {
-    func names() {
-        print(UIFont.familyNames.sorted())
-    }
-
     var body: some Scene {
         WindowGroup {
-            ContentView().environment(\.font, .body).onAppear {
-                names()
-            }
+            ContentView().environment(\.font, .body)
         }
     }
 }
