@@ -1,0 +1,119 @@
+[
+  {
+    "id": "music",
+    "title": "Music",
+    "items": [
+      {
+        "id": "midnight-city",
+        "title": "Midnight City",
+        "subtitle": "M83",
+        "systemImage": "music.note",
+        "detail": "From Hurry Up, We're Dreaming (2011). Synth-pop anthem built on a saxophone hook."
+      },
+      {
+        "id": "redbone",
+        "title": "Redbone",
+        "subtitle": "Childish Gambino",
+        "systemImage": "music.note",
+        "detail": "Grammy-winning single from Awaken, My Love! (2016). Falsetto funk in 6/8."
+      },
+      {
+        "id": "weird-fishes",
+        "title": "Weird Fishes / Arpeggi",
+        "subtitle": "Radiohead",
+        "systemImage": "music.note",
+        "detail": "Track 4 on In Rainbows (2007). Arpeggiated guitars over a shifting pulse."
+      },
+      {
+        "id": "motion-picture-soundtrack",
+        "title": "Motion Picture Soundtrack",
+        "subtitle": "Radiohead",
+        "systemImage": "music.note",
+        "detail": "Closing track of Kid A (2000). Harmonium, harps, and a long fade."
+      },
+      {
+        "id": "an-ending-ascent",
+        "title": "An Ending (Ascent)",
+        "subtitle": "Brian Eno",
+        "systemImage": "music.note",
+        "detail": "From Apollo: Atmospheres & Soundtracks (1983). Slow, weightless pads."
+      },
+      {
+        "id": "pyramid-song",
+        "title": "Pyramid Song",
+        "subtitle": "Radiohead",
+        "systemImage": "music.note",
+        "detail": "Ondes Martenot and strings over a deceptively simple piano figure."
+      },
+      {
+        "id": "flim",
+        "title": "Flim",
+        "subtitle": "Aphex Twin",
+        "systemImage": "music.note",
+        "detail": "From Come to Daddy (1997). Gentle melody against clipped breakbeats."
+      },
+      {
+        "id": "svefn-g-englar",
+        "title": "Svefn-g-englar",
+        "subtitle": "Sigur Rós",
+        "systemImage": "music.note",
+        "detail": "From Ágætis byrjun (1999). Bowed guitar, sonar ping, glacial tempo."
+      }
+    ]
+  },
+  {
+    "id": "photos",
+    "title": "Photos",
+    "items": [
+      {
+        "id": "sunrise-ridge",
+        "title": "Sunrise Ridge",
+        "subtitle": "Yesterday, 6:14 AM",
+        "systemImage": "photo",
+        "detail": "Alpenglow on the east ridge. ISO 100, f/8, 1/125s."
+      },
+      {
+        "id": "harbor-fog",
+        "title": "Harbor Fog",
+        "subtitle": "Mon, 7:02 AM",
+        "systemImage": "photo",
+        "detail": "Low fog rolling over the marina before the boats woke up."
+      },
+      {
+        "id": "market-stall",
+        "title": "Market Stall",
+        "subtitle": "Sat, 10:41 AM",
+        "systemImage": "photo",
+        "detail": "Citrus pyramid at the corner stand. Shot from the hip."
+      },
+      {
+        "id": "rain-on-glass",
+        "title": "Rain on Glass",
+        "subtitle": "Fri, 4:20 PM",
+        "systemImage": "photo",
+        "detail": "Bokeh streetlights through a wet bus window."
+      },
+      {
+        "id": "desert-road",
+        "title": "Desert Road",
+        "subtitle": "Last week",
+        "systemImage": "photo",
+        "detail": "Vanishing point on Route 190, heat shimmer at the horizon."
+      },
+      {
+        "id": "blue-hour",
+        "title": "Blue Hour",
+        "subtitle": "Last week",
+        "systemImage": "photo",
+        "detail": "Skyline ten minutes after sunset, tripod, 4s exposure."
+      },
+      {
+        "id": "forest-path",
+        "title": "Forest Path",
+        "subtitle": "Two weeks ago",
+        "systemImage": "photo",
+        "detail": "Backlit ferns along the lower loop trail."
+      }
+    ]
+  }
+]

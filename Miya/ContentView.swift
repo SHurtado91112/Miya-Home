@@ -19,5 +19,11 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    HomeView(
+        store: Store(initialState: HomeFeature.State(title: "Miya")) {
+            HomeFeature()
+        } withDependencies: {
+            $0.homeClient = .previewValue
+        }
+    )
 }

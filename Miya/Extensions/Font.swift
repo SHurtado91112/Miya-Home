@@ -9,8 +9,8 @@
 import SwiftUI
  
 extension Font {
-    private static let titleFontName = "Snell Roundhand"
-    private static let fontName = "Times New Roman"
+    static let titleFontName = "Snell Roundhand"
+    static let fontName = "Times New Roman"
     
     static var largeTitle: Font {
         .custom(titleFontName, size: 48)
