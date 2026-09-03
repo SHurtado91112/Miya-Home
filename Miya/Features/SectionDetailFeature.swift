@@ -58,6 +58,7 @@ struct SectionDetailView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
+        .serifBackButton()
     }
 }
 

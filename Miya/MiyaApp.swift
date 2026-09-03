@@ -9,10 +9,6 @@ import SwiftUI
 
 @main
 struct MiyaApp: App {
-    init() {
-        BarButtonAppearance.configure()
-    }
-
     var body: some Scene {
         WindowGroup {
             ContentView().environment(\.font, .body)
