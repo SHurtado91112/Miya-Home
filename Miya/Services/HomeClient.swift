@@ -54,7 +54,10 @@ extension HomeSection {
                     title: "Track \(index)",
                     subtitle: "Artist \(index)",
                     systemImage: "music.note",
-                    detail: "Preview fixture track number \(index)."
+                    detail: "Preview fixture track number \(index).",
+                    imageURL: index == 7
+                        ? nil
+                        : URL(string: "https://picsum.photos/seed/miya-track-\(index)/600")
                 )
             })
         ),
@@ -67,7 +70,10 @@ extension HomeSection {
                     title: "Photo \(index)",
                     subtitle: "Yesterday",
                     systemImage: "photo",
-                    detail: "Preview fixture photo number \(index)."
+                    detail: "Preview fixture photo number \(index).",
+                    imageURL: index == 6
+                        ? nil
+                        : URL(string: "https://picsum.photos/seed/miya-photo-\(index)/800/600")
                 )
             })
         ),

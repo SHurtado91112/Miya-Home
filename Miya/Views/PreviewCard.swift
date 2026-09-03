@@ -7,34 +7,67 @@
 
 import SwiftUI
 
-/// A single square tile in a Home section's preview grid.
+/// A tile in a section grid: a square cover image (or SF Symbol fallback) with
+/// the title below. Used at `cardSize` on Home and larger on the section detail.
 struct PreviewCard: View {
     static let cardSize = 84.0
 
     let title: String
     let systemImage: String
+    var imageURL: URL? = nil
+    var size: CGFloat = PreviewCard.cardSize
 
     var body: some View {
         VStack(spacing: 8) {
-            Image(systemName: systemImage)
-                .font(.title3)
-                .foregroundStyle(.secondary)
+            tile
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
         }
-        .padding(8)
-        .frame(width: Self.cardSize, height: Self.cardSize, alignment: .center)
-        .background(Color(.systemGray6))
-        .cornerRadius(8)
+        .frame(width: size)
+    }
+
+    private var tile: some View {
+        ZStack {
+            Color(.systemGray6)
+            if let imageURL {
+                AsyncImage(url: imageURL) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                    case let .success(image):
+                        image.resizable().scaledToFill()
+                    case .failure:
+                        glyph
+                    @unknown default:
+                        glyph
+                    }
+                }
+            } else {
+                glyph
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var glyph: some View {
+        Image(systemName: systemImage)
+            .font(.title3)
+            .foregroundStyle(.secondary)
     }
 }
 
 extension PreviewCard {
-    init(item: HomeSectionItem) {
-        self.init(title: item.title, systemImage: item.systemImage)
+    init(item: HomeSectionItem, size: CGFloat = PreviewCard.cardSize) {
+        self.init(
+            title: item.title,
+            systemImage: item.systemImage,
+            imageURL: item.imageURL,
+            size: size
+        )
     }
 }
 
@@ -43,25 +76,34 @@ extension PreviewCard {
 struct MoreCard: View {
     var body: some View {
         VStack(spacing: 8) {
-            Image(systemName: "arrow.right")
-                .font(.title3)
+            ZStack {
+                Color(.systemGray6)
+                Image(systemName: "arrow.right")
+                    .font(.title3)
+            }
+            .foregroundStyle(.primary)
+            .frame(width: PreviewCard.cardSize, height: PreviewCard.cardSize)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(.primary.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [4]))
+            )
             Text("More")
                 .font(.caption)
+                .foregroundStyle(.primary)
         }
-        .foregroundStyle(.primary)
-        .frame(width: PreviewCard.cardSize, height: PreviewCard.cardSize, alignment: .center)
-        .background(Color(.systemGray6))
-        .cornerRadius(8)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(.primary.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [4]))
-        )
+        .frame(width: PreviewCard.cardSize)
     }
 }
 
 #Preview {
-    HStack(spacing: 12) {
+    HStack(alignment: .top, spacing: 12) {
         PreviewCard(title: "Midnight City", systemImage: "music.note")
+        PreviewCard(
+            title: "Redbone",
+            systemImage: "music.note",
+            imageURL: URL(string: "https://picsum.photos/seed/miya-redbone/600")
+        )
         MoreCard()
     }
     .padding()

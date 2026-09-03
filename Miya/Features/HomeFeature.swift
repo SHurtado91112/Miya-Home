@@ -82,6 +82,7 @@ struct HomeSectionItem: Identifiable, Equatable, Codable {
     var subtitle: String
     var systemImage: String
     var detail: String
+    var imageURL: URL?
 }
 
 struct HomeSection: Identifiable, Equatable, Codable {

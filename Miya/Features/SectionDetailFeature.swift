@@ -26,34 +26,25 @@ struct SectionDetailFeature {
 struct SectionDetailView: View {
     let store: StoreOf<SectionDetailFeature>
 
-    var body: some View {
-        List {
-            // Header — matches HomeView's in-list large title
-            Text(store.section.title).font(.largeTitle).listRowSeparator(.hidden)
+    private static let detailCardSize = 116.0
 
-            ForEach(store.section.items) { item in
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 8) {
-                        Image(systemName: item.systemImage)
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                        Text(item.title).font(.headline)
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // Header — matches HomeView's in-list large title
+                Text(store.section.title).font(.largeTitle)
+
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: Self.detailCardSize), spacing: 16)],
+                    spacing: 16
+                ) {
+                    ForEach(store.section.items) { item in
+                        PreviewCard(item: item, size: Self.detailCardSize)
                     }
-                    Text(item.subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(item.detail)
-                        .font(.body)
-                        .foregroundStyle(.secondary)
                 }
-                .padding(.vertical, 8)
-                .listRowSeparator(.hidden)
             }
+            .padding(16)
         }
-        .listStyle(.grouped)
-        .scrollContentBackground(.hidden)
-        .listSectionSpacing(32)
-        .padding(16)
         .scrollClipDisabled()
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
