@@ -10,24 +10,31 @@ import SwiftUI
 
 @Reducer
 struct SongPreviewFeature {
+    /// The collapsed "mini player" detent — tall enough for artwork, title, and transport controls.
+    static let miniDetent: PresentationDetent = .height(88)
+
     @ObservableState
     struct State: Equatable, Identifiable {
         var item: HomeSectionItem
         var isPlaying = false
+        var detent: PresentationDetent = .large
         var id: HomeSectionItem.ID { item.id }
     }
 
-    enum Action: ViewAction {
+    enum Action: ViewAction, BindableAction {
         enum View {
             case closeTapped
             case playPauseTapped
+            case expandTapped
         }
         case view(View)
+        case binding(BindingAction<State>)
     }
 
     @Dependency(\.dismiss) var dismiss
 
     var body: some ReducerOf<Self> {
+        BindingReducer()
         Reduce { state, action in
             switch action {
             case .view(.closeTapped):
@@ -36,6 +43,13 @@ struct SongPreviewFeature {
             case .view(.playPauseTapped):
                 state.isPlaying.toggle()
                 return .none
+
+            case .view(.expandTapped):
+                state.detent = .large
+                return .none
+
+            case .binding:
+                return .none
             }
         }
     }
@@ -43,9 +57,23 @@ struct SongPreviewFeature {
 
 @ViewAction(for: SongPreviewFeature.self)
 struct SongPreviewView: View {
-    let store: StoreOf<SongPreviewFeature>
+    @Bindable var store: StoreOf<SongPreviewFeature>
 
     var body: some View {
+        Group {
+            if store.detent == .large {
+                fullPlayer
+            } else {
+                miniPlayer
+            }
+        }
+        .presentationDetents([SongPreviewFeature.miniDetent, .large], selection: $store.detent)
+        .presentationBackgroundInteraction(.enabled(upThrough: SongPreviewFeature.miniDetent))
+        .presentationDragIndicator(.hidden)
+        .interactiveDismissDisabled(true)
+    }
+
+    private var fullPlayer: some View {
         VStack(spacing: 0) {
             Capsule()
                 .fill(.secondary)
@@ -53,10 +81,7 @@ struct SongPreviewView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 24)
 
-            artwork
-                .frame(maxWidth: 320)
-                .aspectRatio(1, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+            artwork(size: 320, cornerRadius: 16)
                 .shadow(color: .black.opacity(0.25), radius: 24, y: 12)
                 .padding(.horizontal, 32)
 
@@ -90,11 +115,41 @@ struct SongPreviewView: View {
             }
             .buttonStyle(.plain)
         }
-        .presentationDetents([.large])
-        .presentationDragIndicator(.hidden)
     }
 
-    private var artwork: some View {
+    private var miniPlayer: some View {
+        HStack(spacing: 12) {
+            artwork(size: 44, cornerRadius: 6)
+
+            Text(store.item.title)
+                .font(.body)
+                .lineLimit(1)
+
+            Spacer()
+
+            Button { send(.playPauseTapped) } label: {
+                Image(systemName: store.isPlaying ? "pause.fill" : "play.fill")
+                    .font(.title3)
+                    .foregroundStyle(.primary)
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.plain)
+
+            Button { send(.closeTapped) } label: {
+                Image(systemName: "xmark")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture { send(.expandTapped) }
+    }
+
+    private func artwork(size: CGFloat, cornerRadius: CGFloat) -> some View {
         ZStack {
             Color(.systemGray5)
             if let url = store.item.imageURL {
@@ -105,20 +160,22 @@ struct SongPreviewView: View {
                     case let .success(image):
                         image.resizable().scaledToFill()
                     case .failure:
-                        artworkGlyph
+                        artworkGlyph(size: size)
                     @unknown default:
-                        artworkGlyph
+                        artworkGlyph(size: size)
                     }
                 }
             } else {
-                artworkGlyph
+                artworkGlyph(size: size)
             }
         }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
     }
 
-    private var artworkGlyph: some View {
+    private func artworkGlyph(size: CGFloat) -> some View {
         Image(systemName: store.item.systemImage)
-            .font(.system(size: 64))
+            .font(.system(size: size * 0.2))
             .foregroundStyle(.secondary)
     }
 

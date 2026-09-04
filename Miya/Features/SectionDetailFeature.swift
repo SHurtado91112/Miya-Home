@@ -13,7 +13,6 @@ struct SectionDetailFeature {
     @ObservableState
     struct State: Equatable, Identifiable {
         var section: HomeSection
-        @Presents var preview: MediaPreview.State?
         var id: HomeSection.ID { section.id }
     }
 
@@ -21,8 +20,11 @@ struct SectionDetailFeature {
         enum View {
             case itemTapped(HomeSectionItem.ID)
         }
+        enum Delegate: Equatable {
+            case itemTapped(HomeSectionItem)
+        }
         case view(View)
-        case preview(PresentationAction<MediaPreview.Action>)
+        case delegate(Delegate)
     }
 
     var body: some ReducerOf<Self> {
@@ -30,14 +32,12 @@ struct SectionDetailFeature {
             switch action {
             case let .view(.itemTapped(id)):
                 guard let item = state.section.items[id: id] else { return .none }
-                state.preview = MediaPreview.state(for: item)
-                return .none
+                return .send(.delegate(.itemTapped(item)))
 
-            case .preview:
+            case .delegate:
                 return .none
             }
         }
-        .ifLet(\.$preview, action: \.preview)
     }
 }
 
@@ -74,16 +74,6 @@ struct SectionDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .serifBackButton()
-        .sheet(
-            item: $store.scope(state: \.preview?.song, action: \.preview.song)
-        ) { store in
-            SongPreviewView(store: store)
-        }
-        .fullScreenCover(
-            item: $store.scope(state: \.preview?.photo, action: \.preview.photo)
-        ) { store in
-            PhotoPreviewView(store: store)
-        }
     }
 }
 

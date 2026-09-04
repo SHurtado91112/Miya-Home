@@ -75,6 +75,10 @@ struct HomeFeature {
                 state.preview = MediaPreview.state(for: item)
                 return .none
 
+            case let .path(.element(id: _, action: .sectionDetail(.delegate(.itemTapped(item))))):
+                state.preview = MediaPreview.state(for: item)
+                return .none
+
             case .path, .preview:
                 return .none
             }
