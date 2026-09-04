@@ -10,24 +10,38 @@ import SwiftUI
 
 @Reducer
 struct PhotoPreviewFeature {
+    /// Height of the collapsed "mini" bar — thumbnail and title only.
+    static let miniPlayerHeight: CGFloat = 88
+    /// The collapsed mini-bar detent.
+    static let miniDetent: PresentationDetent = .height(miniPlayerHeight)
+
     @ObservableState
     struct State: Equatable, Identifiable {
         var item: HomeSectionItem
         var showsMetadata = false
+        var detent: PresentationDetent = .large
         var id: HomeSectionItem.ID { item.id }
     }
 
-    enum Action: ViewAction {
+    enum Action: ViewAction, BindableAction {
         enum View {
             case closeTapped
             case toggleMetadataTapped
+            case viewAlbumTapped
+            case expandTapped
+        }
+        enum Delegate: Equatable {
+            case viewAlbumTapped(albumID: Album.ID)
         }
         case view(View)
+        case binding(BindingAction<State>)
+        case delegate(Delegate)
     }
 
     @Dependency(\.dismiss) var dismiss
 
     var body: some ReducerOf<Self> {
+        BindingReducer()
         Reduce { state, action in
             switch action {
             case .view(.closeTapped):
@@ -36,6 +50,17 @@ struct PhotoPreviewFeature {
             case .view(.toggleMetadataTapped):
                 state.showsMetadata.toggle()
                 return .none
+
+            case .view(.viewAlbumTapped):
+                guard let albumID = state.item.albumID else { return .none }
+                return .send(.delegate(.viewAlbumTapped(albumID: albumID)))
+
+            case .view(.expandTapped):
+                state.detent = .large
+                return .none
+
+            case .binding, .delegate:
+                return .none
             }
         }
     }
@@ -43,7 +68,7 @@ struct PhotoPreviewFeature {
 
 @ViewAction(for: PhotoPreviewFeature.self)
 struct PhotoPreviewView: View {
-    let store: StoreOf<PhotoPreviewFeature>
+    @Bindable var store: StoreOf<PhotoPreviewFeature>
 
     private static let maxScale: CGFloat = 4
     private static let doubleTapScale: CGFloat = 2.5
@@ -54,6 +79,19 @@ struct PhotoPreviewView: View {
     @GestureState private var drag: CGSize = .zero
 
     var body: some View {
+        Group {
+            if store.detent == .large {
+                fullPhoto
+            } else {
+                miniPhoto
+            }
+        }
+        .presentationDetents([PhotoPreviewFeature.miniDetent, .large], selection: $store.detent)
+        .presentationBackgroundInteraction(.enabled(upThrough: PhotoPreviewFeature.miniDetent))
+        .presentationDragIndicator(.hidden)
+    }
+
+    private var fullPhoto: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
@@ -75,6 +113,36 @@ struct PhotoPreviewView: View {
         }
         .statusBarHidden()
         .animation(.snappy, value: store.showsMetadata)
+    }
+
+    private var miniPhoto: some View {
+        HStack(spacing: 12) {
+            thumbnail(size: 44, cornerRadius: 6)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(store.item.title)
+                    .font(.body)
+                    .lineLimit(1)
+                Text(store.item.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Button { send(.closeTapped) } label: {
+                Image(systemName: "xmark")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture { send(.expandTapped) }
     }
 
     private var image: some View {
@@ -102,6 +170,36 @@ struct PhotoPreviewView: View {
         Image(systemName: store.item.systemImage)
             .font(.system(size: 72))
             .foregroundStyle(.white.opacity(0.6))
+    }
+
+    private func thumbnail(size: CGFloat, cornerRadius: CGFloat) -> some View {
+        ZStack {
+            Color(.systemGray5)
+            if let url = store.item.imageURL {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                    case let .success(image):
+                        image.resizable().scaledToFill()
+                    case .failure:
+                        thumbnailGlyph(size: size)
+                    @unknown default:
+                        thumbnailGlyph(size: size)
+                    }
+                }
+            } else {
+                thumbnailGlyph(size: size)
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+    }
+
+    private func thumbnailGlyph(size: CGFloat) -> some View {
+        Image(systemName: store.item.systemImage)
+            .font(.system(size: size * 0.3))
+            .foregroundStyle(.secondary)
     }
 
     private var chrome: some View {
@@ -135,6 +233,11 @@ struct PhotoPreviewView: View {
             Text(store.item.detail)
                 .font(.body)
                 .foregroundStyle(.secondary)
+            if store.item.albumID != nil {
+                Button("View Album") { send(.viewAlbumTapped) }
+                    .font(.body)
+                    .padding(.top, 4)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
@@ -181,7 +284,7 @@ struct PhotoPreviewView: View {
 
 #Preview {
     Color.clear
-        .fullScreenCover(isPresented: .constant(true)) {
+        .sheet(isPresented: .constant(true)) {
             PhotoPreviewView(
                 store: Store(
                     initialState: PhotoPreviewFeature.State(item: HomeSection.mocks[1].items[0])

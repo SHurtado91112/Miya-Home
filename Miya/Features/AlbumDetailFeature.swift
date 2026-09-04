@@ -1,5 +1,5 @@
 //
-//  SectionDetailFeature.swift
+//  AlbumDetailFeature.swift
 //  Miya
 //
 //  Created by Steven Hurtado on 7/13/26.
@@ -9,11 +9,11 @@ import ComposableArchitecture
 import SwiftUI
 
 @Reducer
-struct SectionDetailFeature {
+struct AlbumDetailFeature {
     @ObservableState
     struct State: Equatable, Identifiable {
-        var section: HomeSection
-        var id: HomeSection.ID { section.id }
+        var album: Album
+        var id: Album.ID { album.id }
     }
 
     enum Action: ViewAction {
@@ -31,7 +31,7 @@ struct SectionDetailFeature {
         Reduce { state, action in
             switch action {
             case let .view(.itemTapped(id)):
-                guard let item = state.section.items[id: id] else { return .none }
+                guard let item = state.album.items[id: id] else { return .none }
                 return .send(.delegate(.itemTapped(item)))
 
             case .delegate:
@@ -41,9 +41,9 @@ struct SectionDetailFeature {
     }
 }
 
-@ViewAction(for: SectionDetailFeature.self)
-struct SectionDetailView: View {
-    @Bindable var store: StoreOf<SectionDetailFeature>
+@ViewAction(for: AlbumDetailFeature.self)
+struct AlbumDetailView: View {
+    @Bindable var store: StoreOf<AlbumDetailFeature>
 
     /// Space to reserve at the bottom for a collapsed media preview floating over this
     /// screen, so its last row is never hidden behind the mini bar. `nil` when no preview
@@ -56,13 +56,13 @@ struct SectionDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 // Header — matches HomeView's in-list large title
-                Text(store.section.title).font(.largeTitle)
+                Text(store.album.title).font(.largeTitle)
 
                 LazyVGrid(
                     columns: [GridItem(.adaptive(minimum: Self.detailCardSize), spacing: 16)],
                     spacing: 16
                 ) {
-                    ForEach(store.section.items) { item in
+                    ForEach(store.album.items) { item in
                         Button {
                             send(.itemTapped(item.id))
                         } label: {
@@ -89,11 +89,11 @@ struct SectionDetailView: View {
 
 #Preview {
     NavigationStack {
-        SectionDetailView(
+        AlbumDetailView(
             store: Store(
-                initialState: SectionDetailFeature.State(section: HomeSection.mocks[0])
+                initialState: AlbumDetailFeature.State(album: Album.mocks[0])
             ) {
-                SectionDetailFeature()
+                AlbumDetailFeature()
             }
         )
     }

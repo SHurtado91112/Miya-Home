@@ -10,8 +10,10 @@ import SwiftUI
 
 @Reducer
 struct SongPreviewFeature {
-    /// The collapsed "mini player" detent — tall enough for artwork, title, and transport controls.
-    static let miniDetent: PresentationDetent = .height(88)
+    /// Height of the collapsed "mini player" — tall enough for artwork, title, and transport controls.
+    static let miniPlayerHeight: CGFloat = 88
+    /// The collapsed "mini player" detent.
+    static let miniDetent: PresentationDetent = .height(miniPlayerHeight)
 
     @ObservableState
     struct State: Equatable, Identifiable {
@@ -23,23 +25,22 @@ struct SongPreviewFeature {
 
     enum Action: ViewAction, BindableAction {
         enum View {
-            case closeTapped
             case playPauseTapped
             case expandTapped
+            case viewAlbumTapped
+        }
+        enum Delegate: Equatable {
+            case viewAlbumTapped(albumID: Album.ID)
         }
         case view(View)
         case binding(BindingAction<State>)
+        case delegate(Delegate)
     }
-
-    @Dependency(\.dismiss) var dismiss
 
     var body: some ReducerOf<Self> {
         BindingReducer()
         Reduce { state, action in
             switch action {
-            case .view(.closeTapped):
-                return .run { _ in await dismiss() }
-
             case .view(.playPauseTapped):
                 state.isPlaying.toggle()
                 return .none
@@ -48,7 +49,11 @@ struct SongPreviewFeature {
                 state.detent = .large
                 return .none
 
-            case .binding:
+            case .view(.viewAlbumTapped):
+                guard let albumID = state.item.albumID else { return .none }
+                return .send(.delegate(.viewAlbumTapped(albumID: albumID)))
+
+            case .binding, .delegate:
                 return .none
             }
         }
@@ -70,7 +75,6 @@ struct SongPreviewView: View {
         .presentationDetents([SongPreviewFeature.miniDetent, .large], selection: $store.detent)
         .presentationBackgroundInteraction(.enabled(upThrough: SongPreviewFeature.miniDetent))
         .presentationDragIndicator(.hidden)
-        .interactiveDismissDisabled(true)
     }
 
     private var fullPlayer: some View {
@@ -92,6 +96,12 @@ struct SongPreviewView: View {
                 Text(store.item.subtitle)
                     .font(.headline)
                     .foregroundStyle(.secondary)
+
+                if store.item.albumID != nil {
+                    Button("View Album") { send(.viewAlbumTapped) }
+                        .font(.body)
+                        .padding(.top, 4)
+                }
             }
             .padding(.top, 32)
             .padding(.horizontal, 32)
@@ -106,15 +116,6 @@ struct SongPreviewView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .overlay(alignment: .topTrailing) {
-            Button { send(.closeTapped) } label: {
-                Image(systemName: "chevron.down")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-                    .padding(16)
-            }
-            .buttonStyle(.plain)
-        }
     }
 
     private var miniPlayer: some View {
@@ -131,14 +132,6 @@ struct SongPreviewView: View {
                 Image(systemName: store.isPlaying ? "pause.fill" : "play.fill")
                     .font(.title3)
                     .foregroundStyle(.primary)
-                    .frame(width: 32, height: 32)
-            }
-            .buttonStyle(.plain)
-
-            Button { send(.closeTapped) } label: {
-                Image(systemName: "xmark")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)

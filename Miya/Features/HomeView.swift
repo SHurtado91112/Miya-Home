@@ -48,23 +48,30 @@ struct HomeView: View {
             .listSectionSpacing(32)
             .padding(16)
             .scrollClipDisabled()
+            .safeAreaInset(edge: .bottom) {
+                if let height = store.preview?.collapsedHeight {
+                    Color.clear.frame(height: height)
+                }
+            }
             .onAppear { send(.onAppear) }
-        } destination: { store in
-            switch store.case {
-            case let .sectionDetail(store):
-                SectionDetailView(store: store)
+        } destination: { pathStore in
+            switch pathStore.case {
+            case let .sectionDetail(sectionStore):
+                SectionDetailView(store: sectionStore, collapsedPreviewHeight: store.preview?.collapsedHeight)
+            case let .albumDetail(albumStore):
+                AlbumDetailView(store: albumStore, collapsedPreviewHeight: store.preview?.collapsedHeight)
             }
         }
         .tint(.primary)
         .sheet(
-            item: $store.scope(state: \.preview?.song, action: \.preview.song)
+            item: $store.scope(state: \.preview, action: \.preview)
         ) { store in
-            SongPreviewView(store: store)
-        }
-        .fullScreenCover(
-            item: $store.scope(state: \.preview?.photo, action: \.preview.photo)
-        ) { store in
-            PhotoPreviewView(store: store)
+            switch store.case {
+            case let .song(store):
+                SongPreviewView(store: store)
+            case let .photo(store):
+                PhotoPreviewView(store: store)
+            }
         }
     }
 }

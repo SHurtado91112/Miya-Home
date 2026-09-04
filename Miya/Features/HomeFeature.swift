@@ -17,21 +17,25 @@ struct HomeFeature {
     @Reducer
     enum Path {
         case sectionDetail(SectionDetailFeature)
+        case albumDetail(AlbumDetailFeature)
     }
 
     @ObservableState
     struct State: Equatable {
         var title: String
         var sections: IdentifiedArrayOf<HomeSection>
+        var albums: IdentifiedArrayOf<Album>
         var path = StackState<Path.State>()
         @Presents var preview: MediaPreview.State?
 
         init(
             title: String,
-            sections: IdentifiedArrayOf<HomeSection> = []
+            sections: IdentifiedArrayOf<HomeSection> = [],
+            albums: IdentifiedArrayOf<Album> = []
         ) {
             self.title = title
             self.sections = sections
+            self.albums = albums
         }
     }
 
@@ -43,6 +47,7 @@ struct HomeFeature {
         }
         case view(View)
         case sectionsResponse(IdentifiedArrayOf<HomeSection>)
+        case albumsResponse(IdentifiedArrayOf<Album>)
         case path(StackActionOf<Path>)
         case preview(PresentationAction<MediaPreview.Action>)
     }
@@ -55,13 +60,21 @@ struct HomeFeature {
             case .view(.onAppear):
                 guard state.sections.isEmpty else { return .none }
                 return .run { send in
-                    await send(.sectionsResponse(try await homeClient.loadSections()))
+                    async let sections = homeClient.loadSections()
+                    async let albums = homeClient.loadAlbums()
+                    let (loadedSections, loadedAlbums) = try await (sections, albums)
+                    await send(.sectionsResponse(loadedSections))
+                    await send(.albumsResponse(loadedAlbums))
                 } catch: { error, _ in
-                    reportIssue(error, "HomeClient.loadSections failed")
+                    reportIssue(error, "HomeClient.loadSections/loadAlbums failed")
                 }
 
             case let .sectionsResponse(sections):
                 state.sections = sections
+                return .none
+
+            case let .albumsResponse(albums):
+                state.albums = albums
                 return .none
 
             case let .view(.moreTapped(sectionID)):
@@ -72,11 +85,31 @@ struct HomeFeature {
             case let .view(.itemTapped(id)):
                 guard let item = state.sections.lazy.compactMap({ $0.items[id: id] }).first
                 else { return .none }
-                state.preview = MediaPreview.state(for: item)
+                openItem(item, state: &state)
                 return .none
 
             case let .path(.element(id: _, action: .sectionDetail(.delegate(.itemTapped(item))))):
-                state.preview = MediaPreview.state(for: item)
+                openItem(item, state: &state)
+                return .none
+
+            case let .path(.element(id: _, action: .albumDetail(.delegate(.itemTapped(item))))):
+                openItem(item, state: &state)
+                return .none
+
+            case let .preview(.presented(.song(.delegate(.viewAlbumTapped(albumID))))):
+                if var songState = state.preview?.song {
+                    songState.detent = SongPreviewFeature.miniDetent
+                    state.preview = .song(songState)
+                }
+                openAlbum(albumID, state: &state)
+                return .none
+
+            case let .preview(.presented(.photo(.delegate(.viewAlbumTapped(albumID))))):
+                if var photoState = state.preview?.photo {
+                    photoState.detent = PhotoPreviewFeature.miniDetent
+                    state.preview = .photo(photoState)
+                }
+                openAlbum(albumID, state: &state)
                 return .none
 
             case .path, .preview:
@@ -86,6 +119,25 @@ struct HomeFeature {
         .forEach(\.path, action: \.path)
         .ifLet(\.$preview, action: \.preview)
     }
+
+    private func openItem(_ item: HomeSectionItem, state: inout State) {
+        switch item.kind {
+        case .album:
+            guard let album = state.albums[id: item.id] else { return }
+            state.path.append(.albumDetail(AlbumDetailFeature.State(album: album)))
+        case .song, .photo:
+            state.preview = MediaPreview.state(for: item)
+        }
+    }
+
+    private func openAlbum(_ albumID: Album.ID, state: inout State) {
+        let albumAlreadyOnPath = state.path.contains { pathState in
+            guard case let .albumDetail(albumDetailState) = pathState else { return false }
+            return albumDetailState.album.id == albumID
+        }
+        guard !albumAlreadyOnPath, let album = state.albums[id: albumID] else { return }
+        state.path.append(.albumDetail(AlbumDetailFeature.State(album: album)))
+    }
 }
 
 extension HomeFeature.Path.State: Equatable {}
@@ -93,6 +145,7 @@ extension HomeFeature.Path.State: Equatable {}
 enum MediaKind: String, Codable, Equatable {
     case song
     case photo
+    case album
 }
 
 struct HomeSectionItem: Identifiable, Equatable, Codable {
@@ -103,10 +156,20 @@ struct HomeSectionItem: Identifiable, Equatable, Codable {
     var systemImage: String
     var detail: String
     var imageURL: URL?
+    var albumID: Album.ID?
 }
 
 struct HomeSection: Identifiable, Equatable, Codable {
     var id: String
     var title: String
+    var items: IdentifiedArrayOf<HomeSectionItem>
+}
+
+struct Album: Identifiable, Equatable, Codable {
+    var id: String
+    var title: String
+    var subtitle: String
+    var systemImage: String
+    var imageURL: URL?
     var items: IdentifiedArrayOf<HomeSectionItem>
 }

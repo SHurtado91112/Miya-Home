@@ -20,13 +20,23 @@ struct PreviewCard: View {
     var body: some View {
         VStack(spacing: 8) {
             tile
+            caption
+        }
+        .frame(width: size)
+    }
+
+    /// Reserves a fixed two-line height (via a hidden two-line reference text) so a
+    /// one-line title doesn't leave the card shorter than a neighboring two-line one —
+    /// otherwise the grid centers rows by height and the cover images fall out of alignment.
+    private var caption: some View {
+        ZStack(alignment: .top) {
+            Text("A\nA").font(.caption).opacity(0).accessibilityHidden(true)
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
         }
-        .frame(width: size)
     }
 
     private var tile: some View {
@@ -88,9 +98,12 @@ struct MoreCard: View {
                 RoundedRectangle(cornerRadius: 8)
                     .strokeBorder(.primary.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [4]))
             )
-            Text("More")
-                .font(.caption)
-                .foregroundStyle(.primary)
+            ZStack(alignment: .top) {
+                Text("A\nA").font(.caption).opacity(0).accessibilityHidden(true)
+                Text("More")
+                    .font(.caption)
+                    .foregroundStyle(.primary)
+            }
         }
         .frame(width: PreviewCard.cardSize)
     }
