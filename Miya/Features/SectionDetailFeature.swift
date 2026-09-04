@@ -10,16 +10,10 @@ import SwiftUI
 
 @Reducer
 struct SectionDetailFeature {
-    @Reducer
-    enum Destination {
-        case songPreview(SongPreviewFeature)
-        case photoPreview(PhotoPreviewFeature)
-    }
-
     @ObservableState
     struct State: Equatable, Identifiable {
         var section: HomeSection
-        @Presents var destination: Destination.State?
+        @Presents var preview: MediaPreview.State?
         var id: HomeSection.ID { section.id }
     }
 
@@ -28,7 +22,7 @@ struct SectionDetailFeature {
             case itemTapped(HomeSectionItem.ID)
         }
         case view(View)
-        case destination(PresentationAction<Destination.Action>)
+        case preview(PresentationAction<MediaPreview.Action>)
     }
 
     var body: some ReducerOf<Self> {
@@ -36,23 +30,16 @@ struct SectionDetailFeature {
             switch action {
             case let .view(.itemTapped(id)):
                 guard let item = state.section.items[id: id] else { return .none }
-                switch item.kind {
-                case .song:
-                    state.destination = .songPreview(SongPreviewFeature.State(item: item))
-                case .photo:
-                    state.destination = .photoPreview(PhotoPreviewFeature.State(item: item))
-                }
+                state.preview = MediaPreview.state(for: item)
                 return .none
 
-            case .destination:
+            case .preview:
                 return .none
             }
         }
-        .ifLet(\.$destination, action: \.destination)
+        .ifLet(\.$preview, action: \.preview)
     }
 }
-
-extension SectionDetailFeature.Destination.State: Equatable {}
 
 @ViewAction(for: SectionDetailFeature.self)
 struct SectionDetailView: View {
@@ -88,12 +75,12 @@ struct SectionDetailView: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .serifBackButton()
         .sheet(
-            item: $store.scope(state: \.destination?.songPreview, action: \.destination.songPreview)
+            item: $store.scope(state: \.preview?.song, action: \.preview.song)
         ) { store in
             SongPreviewView(store: store)
         }
         .fullScreenCover(
-            item: $store.scope(state: \.destination?.photoPreview, action: \.destination.photoPreview)
+            item: $store.scope(state: \.preview?.photo, action: \.preview.photo)
         ) { store in
             PhotoPreviewView(store: store)
         }

@@ -24,6 +24,7 @@ struct HomeFeature {
         var title: String
         var sections: IdentifiedArrayOf<HomeSection>
         var path = StackState<Path.State>()
+        @Presents var preview: MediaPreview.State?
 
         init(
             title: String,
@@ -38,10 +39,12 @@ struct HomeFeature {
         enum View {
             case onAppear
             case moreTapped(sectionID: HomeSection.ID)
+            case itemTapped(id: HomeSectionItem.ID)
         }
         case view(View)
         case sectionsResponse(IdentifiedArrayOf<HomeSection>)
         case path(StackActionOf<Path>)
+        case preview(PresentationAction<MediaPreview.Action>)
     }
 
     @Dependency(\.homeClient) var homeClient
@@ -66,11 +69,18 @@ struct HomeFeature {
                 state.path.append(.sectionDetail(SectionDetailFeature.State(section: section)))
                 return .none
 
-            case .path:
+            case let .view(.itemTapped(id)):
+                guard let item = state.sections.lazy.compactMap({ $0.items[id: id] }).first
+                else { return .none }
+                state.preview = MediaPreview.state(for: item)
+                return .none
+
+            case .path, .preview:
                 return .none
             }
         }
         .forEach(\.path, action: \.path)
+        .ifLet(\.$preview, action: \.preview)
     }
 }
 

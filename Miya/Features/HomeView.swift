@@ -23,7 +23,12 @@ struct HomeView: View {
                     Section(section.title) {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: PreviewCard.cardSize))]) {
                             ForEach(section.items.prefix(HomeFeature.previewLimit)) { item in
-                                PreviewCard(item: item)
+                                Button {
+                                    send(.itemTapped(id: item.id))
+                                } label: {
+                                    PreviewCard(item: item)
+                                }
+                                .buttonStyle(.plain)
                             }
 
                             if section.items.count > HomeFeature.previewLimit {
@@ -51,6 +56,16 @@ struct HomeView: View {
             }
         }
         .tint(.primary)
+        .sheet(
+            item: $store.scope(state: \.preview?.song, action: \.preview.song)
+        ) { store in
+            SongPreviewView(store: store)
+        }
+        .fullScreenCover(
+            item: $store.scope(state: \.preview?.photo, action: \.preview.photo)
+        ) { store in
+            PhotoPreviewView(store: store)
+        }
     }
 }
 
