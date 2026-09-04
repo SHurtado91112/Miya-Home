@@ -51,6 +51,7 @@ extension HomeSection {
             items: IdentifiedArray(uniqueElements: (1...8).map { index in
                 HomeSectionItem(
                     id: "track-\(index)",
+                    kind: .song,
                     title: "Track \(index)",
                     subtitle: "Artist \(index)",
                     systemImage: "music.note",
@@ -67,6 +68,7 @@ extension HomeSection {
             items: IdentifiedArray(uniqueElements: (1...7).map { index in
                 HomeSectionItem(
                     id: "photo-\(index)",
+                    kind: .photo,
                     title: "Photo \(index)",
                     subtitle: "Yesterday",
                     systemImage: "photo",

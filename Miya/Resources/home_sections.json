@@ -5,6 +5,7 @@
     "items": [
       {
         "id": "midnight-city",
+        "kind": "song",
         "title": "Midnight City",
         "subtitle": "M83",
         "systemImage": "music.note",
@@ -13,6 +14,7 @@
       },
       {
         "id": "redbone",
+        "kind": "song",
         "title": "Redbone",
         "subtitle": "Childish Gambino",
         "systemImage": "music.note",
@@ -21,6 +23,7 @@
       },
       {
         "id": "weird-fishes",
+        "kind": "song",
         "title": "Weird Fishes / Arpeggi",
         "subtitle": "Radiohead",
         "systemImage": "music.note",
@@ -29,6 +32,7 @@
       },
       {
         "id": "motion-picture-soundtrack",
+        "kind": "song",
         "title": "Motion Picture Soundtrack",
         "subtitle": "Radiohead",
         "systemImage": "music.note",
@@ -37,6 +41,7 @@
       },
       {
         "id": "an-ending-ascent",
+        "kind": "song",
         "title": "An Ending (Ascent)",
         "subtitle": "Brian Eno",
         "systemImage": "music.note",
@@ -45,6 +50,7 @@
       },
       {
         "id": "pyramid-song",
+        "kind": "song",
         "title": "Pyramid Song",
         "subtitle": "Radiohead",
         "systemImage": "music.note",
@@ -53,6 +59,7 @@
       },
       {
         "id": "flim",
+        "kind": "song",
         "title": "Flim",
         "subtitle": "Aphex Twin",
         "systemImage": "music.note",
@@ -60,6 +67,7 @@
       },
       {
         "id": "svefn-g-englar",
+        "kind": "song",
         "title": "Svefn-g-englar",
         "subtitle": "Sigur Rós",
         "systemImage": "music.note",
@@ -74,6 +82,7 @@
     "items": [
       {
         "id": "sunrise-ridge",
+        "kind": "photo",
         "title": "Sunrise Ridge",
         "subtitle": "Yesterday, 6:14 AM",
         "systemImage": "photo",
@@ -82,6 +91,7 @@
       },
       {
         "id": "harbor-fog",
+        "kind": "photo",
         "title": "Harbor Fog",
         "subtitle": "Mon, 7:02 AM",
         "systemImage": "photo",
@@ -90,6 +100,7 @@
       },
       {
         "id": "market-stall",
+        "kind": "photo",
         "title": "Market Stall",
         "subtitle": "Sat, 10:41 AM",
         "systemImage": "photo",
@@ -98,6 +109,7 @@
       },
       {
         "id": "rain-on-glass",
+        "kind": "photo",
         "title": "Rain on Glass",
         "subtitle": "Fri, 4:20 PM",
         "systemImage": "photo",
@@ -106,6 +118,7 @@
       },
       {
         "id": "desert-road",
+        "kind": "photo",
         "title": "Desert Road",
         "subtitle": "Last week",
         "systemImage": "photo",
@@ -114,6 +127,7 @@
       },
       {
         "id": "blue-hour",
+        "kind": "photo",
         "title": "Blue Hour",
         "subtitle": "Last week",
         "systemImage": "photo",
@@ -122,6 +136,7 @@
       },
       {
         "id": "forest-path",
+        "kind": "photo",
         "title": "Forest Path",
         "subtitle": "Two weeks ago",
         "systemImage": "photo",

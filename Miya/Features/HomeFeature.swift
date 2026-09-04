@@ -76,8 +76,14 @@ struct HomeFeature {
 
 extension HomeFeature.Path.State: Equatable {}
 
+enum MediaKind: String, Codable, Equatable {
+    case song
+    case photo
+}
+
 struct HomeSectionItem: Identifiable, Equatable, Codable {
     var id: String
+    var kind: MediaKind
     var title: String
     var subtitle: String
     var systemImage: String

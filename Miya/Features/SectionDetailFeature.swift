@@ -10,21 +10,53 @@ import SwiftUI
 
 @Reducer
 struct SectionDetailFeature {
+    @Reducer
+    enum Destination {
+        case songPreview(SongPreviewFeature)
+        case photoPreview(PhotoPreviewFeature)
+    }
+
     @ObservableState
     struct State: Equatable, Identifiable {
         var section: HomeSection
+        @Presents var destination: Destination.State?
         var id: HomeSection.ID { section.id }
     }
 
-    enum Action {}
+    enum Action: ViewAction {
+        enum View {
+            case itemTapped(HomeSectionItem.ID)
+        }
+        case view(View)
+        case destination(PresentationAction<Destination.Action>)
+    }
 
     var body: some ReducerOf<Self> {
-        EmptyReducer()
+        Reduce { state, action in
+            switch action {
+            case let .view(.itemTapped(id)):
+                guard let item = state.section.items[id: id] else { return .none }
+                switch item.kind {
+                case .song:
+                    state.destination = .songPreview(SongPreviewFeature.State(item: item))
+                case .photo:
+                    state.destination = .photoPreview(PhotoPreviewFeature.State(item: item))
+                }
+                return .none
+
+            case .destination:
+                return .none
+            }
+        }
+        .ifLet(\.$destination, action: \.destination)
     }
 }
 
+extension SectionDetailFeature.Destination.State: Equatable {}
+
+@ViewAction(for: SectionDetailFeature.self)
 struct SectionDetailView: View {
-    let store: StoreOf<SectionDetailFeature>
+    @Bindable var store: StoreOf<SectionDetailFeature>
 
     private static let detailCardSize = 116.0
 
@@ -39,7 +71,12 @@ struct SectionDetailView: View {
                     spacing: 16
                 ) {
                     ForEach(store.section.items) { item in
-                        PreviewCard(item: item, size: Self.detailCardSize)
+                        Button {
+                            send(.itemTapped(item.id))
+                        } label: {
+                            PreviewCard(item: item, size: Self.detailCardSize)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -50,6 +87,16 @@ struct SectionDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .serifBackButton()
+        .sheet(
+            item: $store.scope(state: \.destination?.songPreview, action: \.destination.songPreview)
+        ) { store in
+            SongPreviewView(store: store)
+        }
+        .fullScreenCover(
+            item: $store.scope(state: \.destination?.photoPreview, action: \.destination.photoPreview)
+        ) { store in
+            PhotoPreviewView(store: store)
+        }
     }
 }
 
