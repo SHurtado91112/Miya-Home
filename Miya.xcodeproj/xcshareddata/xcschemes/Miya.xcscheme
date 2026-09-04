@@ -51,6 +51,13 @@
             ReferencedContainer = "container:Miya.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <EnvironmentVariables>
+         <EnvironmentVariable
+            key = "MIYA_SERVER_URL"
+            value = "https://192.168.1.2:8000"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+      </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

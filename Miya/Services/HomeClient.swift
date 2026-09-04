@@ -17,7 +17,17 @@ struct HomeClient: Sendable {
 }
 
 extension HomeClient: DependencyKey {
+    /// When `MIYA_SERVER_URL` is set in the run environment (see the Debug scheme's
+    /// LaunchAction), fetch live data from a local MiyaServer over the LAN instead
+    /// of the bundled JSON fixtures. Used for on-device testing.
+    private static var serverURL: URL? {
+        ProcessInfo.processInfo.environment["MIYA_SERVER_URL"].flatMap(URL.init)
+    }
+
     static let liveValue = HomeClient {
+        if let serverURL {
+            return try await MiyaGraphQLClient(baseURL: serverURL).loadSections()
+        }
         guard let url = Bundle.main.url(forResource: "home_sections", withExtension: "json") else {
             throw HomeClientError.resourceMissing
         }
@@ -25,6 +35,9 @@ extension HomeClient: DependencyKey {
         let sections = try JSONDecoder().decode([HomeSection].self, from: data)
         return IdentifiedArray(uniqueElements: sections)
     } loadAlbums: {
+        if let serverURL {
+            return try await MiyaGraphQLClient(baseURL: serverURL).loadAlbums()
+        }
         guard let url = Bundle.main.url(forResource: "albums", withExtension: "json") else {
             throw HomeClientError.resourceMissing
         }
