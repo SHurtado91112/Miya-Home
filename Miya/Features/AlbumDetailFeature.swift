@@ -58,10 +58,7 @@ struct AlbumDetailView: View {
                 // Header — matches HomeView's in-list large title
                 Text(store.album.title).font(.largeTitle)
 
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: Self.detailCardSize), spacing: 16)],
-                    spacing: 16
-                ) {
+                LazyVGrid(columns: .justifiedTriple, spacing: 16) {
                     ForEach(store.album.items) { item in
                         Button {
                             send(.itemTapped(item.id))

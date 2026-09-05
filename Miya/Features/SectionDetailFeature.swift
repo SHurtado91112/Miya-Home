@@ -13,7 +13,13 @@ struct SectionDetailFeature {
     @ObservableState
     struct State: Equatable, Identifiable {
         var section: HomeSection
+        var albums: IdentifiedArrayOf<Album> = []
         var id: HomeSection.ID { section.id }
+
+        /// `section.items` with album-member tiles hidden; the album's own tile stands in.
+        var visibleItems: IdentifiedArrayOf<HomeSectionItem> {
+            section.items.collapsingAlbumMembers(against: albums)
+        }
     }
 
     enum Action: ViewAction {
@@ -58,15 +64,16 @@ struct SectionDetailView: View {
                 // Header — matches HomeView's in-list large title
                 Text(store.section.title).font(.largeTitle)
 
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: Self.detailCardSize), spacing: 16)],
-                    spacing: 16
-                ) {
-                    ForEach(store.section.items) { item in
+                LazyVGrid(columns: .justifiedTriple, spacing: 16) {
+                    ForEach(store.visibleItems) { item in
                         Button {
                             send(.itemTapped(item.id))
                         } label: {
-                            PreviewCard(item: item, size: Self.detailCardSize)
+                            if item.kind == .album, let album = store.albums[id: item.id] {
+                                StackedCoverCard(album: album, size: Self.detailCardSize)
+                            } else {
+                                PreviewCard(item: item, size: Self.detailCardSize)
+                            }
                         }
                         .buttonStyle(.plain)
                     }
@@ -91,7 +98,10 @@ struct SectionDetailView: View {
     NavigationStack {
         SectionDetailView(
             store: Store(
-                initialState: SectionDetailFeature.State(section: HomeSection.mocks[0])
+                initialState: SectionDetailFeature.State(
+                section: HomeSection.mocks[0],
+                albums: IdentifiedArray(uniqueElements: Album.mocks)
+            )
             ) {
                 SectionDetailFeature()
             }

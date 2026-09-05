@@ -7,6 +7,18 @@
 
 import SwiftUI
 
+extension Array where Element == GridItem {
+    /// Three columns that fill the container width and push their content to the
+    /// leading edge, centre, and trailing edge respectively — so a row of cards is
+    /// justified across the full width with equal gaps and equal leading/trailing
+    /// margins (matching the section title's margins).
+    static let justifiedTriple: [GridItem] = [
+        GridItem(.flexible(), spacing: 0, alignment: .leading),
+        GridItem(.flexible(), spacing: 0, alignment: .center),
+        GridItem(.flexible(), spacing: 0, alignment: .trailing),
+    ]
+}
+
 /// A tile in a section grid: a square cover image (or SF Symbol fallback) with
 /// the title below. Used at `cardSize` on Home and larger on the section detail.
 struct PreviewCard: View {
@@ -19,54 +31,10 @@ struct PreviewCard: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            tile
-            caption
+            CoverTile(systemImage: systemImage, imageURL: imageURL, size: size)
+            ReservedCaption(title: title)
         }
         .frame(width: size)
-    }
-
-    /// Reserves a fixed two-line height (via a hidden two-line reference text) so a
-    /// one-line title doesn't leave the card shorter than a neighboring two-line one —
-    /// otherwise the grid centers rows by height and the cover images fall out of alignment.
-    private var caption: some View {
-        ZStack(alignment: .top) {
-            Text("A\nA").font(.caption).opacity(0).accessibilityHidden(true)
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
-        }
-    }
-
-    private var tile: some View {
-        ZStack {
-            Color(.systemGray6)
-            if let imageURL {
-                AsyncImage(url: imageURL) { phase in
-                    switch phase {
-                    case .empty:
-                        ProgressView()
-                    case let .success(image):
-                        image.resizable().scaledToFill()
-                    case .failure:
-                        glyph
-                    @unknown default:
-                        glyph
-                    }
-                }
-            } else {
-                glyph
-            }
-        }
-        .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-    }
-
-    private var glyph: some View {
-        Image(systemName: systemImage)
-            .font(.title3)
-            .foregroundStyle(.secondary)
     }
 }
 

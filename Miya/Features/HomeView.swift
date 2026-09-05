@@ -19,14 +19,18 @@ struct HomeView: View {
                 Text(store.title).font(.largeTitle).listRowSeparator(.hidden)
 
                 // Sections
-                ForEach(store.sections) { section in
+                ForEach(store.visibleSections) { section in
                     Section(section.title) {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: PreviewCard.cardSize))]) {
+                        LazyVGrid(columns: .justifiedTriple, spacing: 16) {
                             ForEach(section.items.prefix(HomeFeature.previewLimit)) { item in
                                 Button {
                                     send(.itemTapped(id: item.id))
                                 } label: {
-                                    PreviewCard(item: item)
+                                    if item.kind == .album, let album = store.albums[id: item.id] {
+                                        StackedCoverCard(album: album)
+                                    } else {
+                                        PreviewCard(item: item)
+                                    }
                                 }
                                 .buttonStyle(.plain)
                             }
