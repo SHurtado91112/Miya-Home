@@ -10,7 +10,8 @@
         "subtitle": "M83",
         "systemImage": "music.note",
         "detail": "From Hurry Up, We're Dreaming (2011). Synth-pop anthem built on a saxophone hook.",
-        "imageURL": "https://picsum.photos/seed/miya-midnight-city/600"
+        "imageURL": "https://picsum.photos/seed/miya-midnight-city/600",
+        "author": { "id": "m83", "name": "M83" }
       },
       {
         "id": "redbone",
@@ -19,7 +20,8 @@
         "subtitle": "Childish Gambino",
         "systemImage": "music.note",
         "detail": "Grammy-winning single from Awaken, My Love! (2016). Falsetto funk in 6/8.",
-        "imageURL": "https://picsum.photos/seed/miya-redbone/600"
+        "imageURL": "https://picsum.photos/seed/miya-redbone/600",
+        "author": { "id": "childish-gambino", "name": "Childish Gambino" }
       },
       {
         "id": "weird-fishes",
@@ -29,7 +31,8 @@
         "systemImage": "music.note",
         "detail": "Track 4 on In Rainbows (2007). Arpeggiated guitars over a shifting pulse.",
         "imageURL": "https://picsum.photos/seed/miya-weird-fishes/600",
-        "albumID": "in-rainbows"
+        "albumID": "in-rainbows",
+        "author": { "id": "radiohead", "name": "Radiohead" }
       },
       {
         "id": "in-rainbows",
@@ -47,7 +50,8 @@
         "subtitle": "Radiohead",
         "systemImage": "music.note",
         "detail": "Closing track of Kid A (2000). Harmonium, harps, and a long fade.",
-        "imageURL": "https://picsum.photos/seed/miya-motion-picture/600"
+        "imageURL": "https://picsum.photos/seed/miya-motion-picture/600",
+        "author": { "id": "radiohead", "name": "Radiohead" }
       },
       {
         "id": "an-ending-ascent",
@@ -56,7 +60,8 @@
         "subtitle": "Brian Eno",
         "systemImage": "music.note",
         "detail": "From Apollo: Atmospheres & Soundtracks (1983). Slow, weightless pads.",
-        "imageURL": "https://picsum.photos/seed/miya-an-ending/600"
+        "imageURL": "https://picsum.photos/seed/miya-an-ending/600",
+        "author": { "id": "brian-eno", "name": "Brian Eno" }
       },
       {
         "id": "pyramid-song",
@@ -65,7 +70,8 @@
         "subtitle": "Radiohead",
         "systemImage": "music.note",
         "detail": "Ondes Martenot and strings over a deceptively simple piano figure.",
-        "imageURL": "https://picsum.photos/seed/miya-pyramid-song/600"
+        "imageURL": "https://picsum.photos/seed/miya-pyramid-song/600",
+        "author": { "id": "radiohead", "name": "Radiohead" }
       },
       {
         "id": "flim",
@@ -73,7 +79,8 @@
         "title": "Flim",
         "subtitle": "Aphex Twin",
         "systemImage": "music.note",
-        "detail": "From Come to Daddy (1997). Gentle melody against clipped breakbeats."
+        "detail": "From Come to Daddy (1997). Gentle melody against clipped breakbeats.",
+        "author": { "id": "aphex-twin", "name": "Aphex Twin" }
       },
       {
         "id": "svefn-g-englar",
@@ -82,7 +89,8 @@
         "subtitle": "Sigur Rós",
         "systemImage": "music.note",
         "detail": "From Ágætis byrjun (1999). Bowed guitar, sonar ping, glacial tempo.",
-        "imageURL": "https://picsum.photos/seed/miya-svefn/600"
+        "imageURL": "https://picsum.photos/seed/miya-svefn/600",
+        "author": { "id": "sigur-ros", "name": "Sigur Rós" }
       }
     ]
   },
@@ -98,7 +106,8 @@
         "systemImage": "photo",
         "detail": "Alpenglow on the east ridge. ISO 100, f/8, 1/125s.",
         "imageURL": "https://picsum.photos/seed/miya-sunrise-ridge/800/600",
-        "albumID": "yesterday-morning"
+        "albumID": "yesterday-morning",
+        "author": { "id": "steven-hurtado", "name": "Steven Hurtado" }
       },
       {
         "id": "harbor-fog",
@@ -108,7 +117,8 @@
         "systemImage": "photo",
         "detail": "Low fog rolling over the marina before the boats woke up.",
         "imageURL": "https://picsum.photos/seed/miya-harbor-fog/800/600",
-        "albumID": "yesterday-morning"
+        "albumID": "yesterday-morning",
+        "author": { "id": "steven-hurtado", "name": "Steven Hurtado" }
       },
       {
         "id": "yesterday-morning",
@@ -126,7 +136,8 @@
         "subtitle": "Sat, 10:41 AM",
         "systemImage": "photo",
         "detail": "Citrus pyramid at the corner stand. Shot from the hip.",
-        "imageURL": "https://picsum.photos/seed/miya-market-stall/800/600"
+        "imageURL": "https://picsum.photos/seed/miya-market-stall/800/600",
+        "author": { "id": "steven-hurtado", "name": "Steven Hurtado" }
       },
       {
         "id": "rain-on-glass",
@@ -135,7 +146,8 @@
         "subtitle": "Fri, 4:20 PM",
         "systemImage": "photo",
         "detail": "Bokeh streetlights through a wet bus window.",
-        "imageURL": "https://picsum.photos/seed/miya-rain-on-glass/800/600"
+        "imageURL": "https://picsum.photos/seed/miya-rain-on-glass/800/600",
+        "author": { "id": "steven-hurtado", "name": "Steven Hurtado" }
       },
       {
         "id": "desert-road",
@@ -144,7 +156,8 @@
         "subtitle": "Last week",
         "systemImage": "photo",
         "detail": "Vanishing point on Route 190, heat shimmer at the horizon.",
-        "imageURL": "https://picsum.photos/seed/miya-desert-road/800/600"
+        "imageURL": "https://picsum.photos/seed/miya-desert-road/800/600",
+        "author": { "id": "steven-hurtado", "name": "Steven Hurtado" }
       },
       {
         "id": "blue-hour",
@@ -153,7 +166,8 @@
         "subtitle": "Last week",
         "systemImage": "photo",
         "detail": "Skyline ten minutes after sunset, tripod, 4s exposure.",
-        "imageURL": "https://picsum.photos/seed/miya-blue-hour/800/600"
+        "imageURL": "https://picsum.photos/seed/miya-blue-hour/800/600",
+        "author": { "id": "steven-hurtado", "name": "Steven Hurtado" }
       },
       {
         "id": "forest-path",
@@ -161,7 +175,8 @@
         "title": "Forest Path",
         "subtitle": "Two weeks ago",
         "systemImage": "photo",
-        "detail": "Backlit ferns along the lower loop trail."
+        "detail": "Backlit ferns along the lower loop trail.",
+        "author": { "id": "steven-hurtado", "name": "Steven Hurtado" }
       }
     ]
   }

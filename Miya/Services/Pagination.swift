@@ -22,3 +22,12 @@ struct Page<Element: Identifiable & Equatable & Sendable>: Equatable, Sendable {
 
     static var empty: Page { Page(elements: [], cursor: nil, hasMore: false) }
 }
+
+/// One response from `HomeClient.search`: a page of matching media entries plus
+/// the (small, unpaginated) set of authors whose name matched the query.
+struct SearchResults: Equatable, Sendable {
+    var entries: Page<HomeSectionItem>
+    var authors: [AuthorRef]
+
+    static let empty = SearchResults(entries: .empty, authors: [])
+}

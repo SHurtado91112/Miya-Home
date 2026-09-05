@@ -48,9 +48,24 @@ struct GQLPageInfo: Decodable {
 
 // MARK: - Entity DTOs
 
+/// The `author { id slug name }` sub-selection on a Song / Photo. `id` is the
+/// Relay global id (paged via `node(id:)`), `slug` the human id.
+struct GQLAuthorRef: Decodable {
+    let id: String
+    let slug: String
+    let name: String
+}
+
+/// The `album { slug }` sub-selection on a Song / Photo — the parent album's
+/// human id, which becomes `HomeSectionItem.albumID`.
+struct GQLAlbumRef: Decodable {
+    let slug: String
+}
+
 /// A `SectionEntry` union member (Song | Photo | Album) flattened into one
 /// decode target, discriminated by `__typename`. `id` is the Relay global id,
-/// `slug` the human id the app uses as its domain `id`.
+/// `slug` the human id the app uses as its domain `id`. `author` / `album` are
+/// present only on Song / Photo.
 struct GQLSectionEntry: Decodable {
     let __typename: String
     let id: String
@@ -60,6 +75,8 @@ struct GQLSectionEntry: Decodable {
     let systemImage: String
     let detail: String?
     let imageUrl: String?
+    let author: GQLAuthorRef?
+    let album: GQLAlbumRef?
 }
 
 struct GQLAlbum: Decodable {
@@ -114,11 +131,30 @@ struct AlbumNodeQueryData: Decodable {
     let node: GQLAlbumNode?
 }
 
+/// `search(query:, sectionSlug:, first:, after:)` payload.
+struct GQLSearchResult: Decodable {
+    let entries: GQLConnection<GQLSectionEntry>
+    let authors: [GQLAuthorRef]
+}
+
+struct SearchQueryData: Decodable {
+    let search: GQLSearchResult
+}
+
+/// `node(id:)` narrowed to an Author's items connection.
+struct GQLAuthorItemsNode: Decodable {
+    let items: GQLConnection<GQLSectionEntry>?
+}
+
+struct AuthorItemsQueryData: Decodable {
+    let node: GQLAuthorItemsNode?
+}
+
 // MARK: - DTO -> domain
 
 extension GQLSectionEntry {
-    /// `detail` is absent on `Album`. `albumID` (the parent album of a song/photo)
-    /// still isn't requested here — a separate gap. `albumNodeID` carries the Relay
+    /// `detail` / `author` / `album` are absent on `Album` entries. `albumID`
+    /// comes from the parent-album sub-selection; `albumNodeID` carries the Relay
     /// global id for album entries so a tap can resolve an album that isn't in the
     /// loaded `albums` page via `node(id:)`.
     func toHomeSectionItem() -> HomeSectionItem {
@@ -137,8 +173,18 @@ extension GQLSectionEntry {
             systemImage: systemImage,
             detail: detail ?? "",
             imageURL: imageUrl.flatMap(URL.init),
-            albumID: nil,
+            albumID: album?.slug,
+            author: author.map { AuthorRef(id: $0.slug, name: $0.name, nodeID: $0.id) },
             albumNodeID: kind == .album ? id : nil
+        )
+    }
+}
+
+extension GQLSearchResult {
+    func toSearchResults() -> SearchResults {
+        SearchResults(
+            entries: entries.toItemPage(),
+            authors: authors.map { AuthorRef(id: $0.slug, name: $0.name, nodeID: $0.id) }
         )
     }
 }

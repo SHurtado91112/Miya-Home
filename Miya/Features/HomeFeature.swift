@@ -18,6 +18,7 @@ struct HomeFeature {
     enum Path {
         case sectionDetail(SectionDetailFeature)
         case albumDetail(AlbumDetailFeature)
+        case authorDetail(AuthorDetailFeature)
     }
 
     @ObservableState
@@ -56,6 +57,7 @@ struct HomeFeature {
             case onAppear
             case refreshed
             case moreTapped(sectionID: HomeSection.ID)
+            case searchTapped(sectionID: HomeSection.ID)
             case itemTapped(id: HomeSectionItem.ID)
         }
         case view(View)
@@ -116,13 +118,10 @@ struct HomeFeature {
                 return .none
 
             case let .view(.moreTapped(sectionID)):
-                guard let section = state.sections[id: sectionID] else { return .none }
-                state.path.append(
-                    .sectionDetail(
-                        SectionDetailFeature.State(section: section, albums: state.albums)
-                    )
-                )
-                return .none
+                return pushSectionDetail(sectionID, autoFocusSearch: false, state: &state)
+
+            case let .view(.searchTapped(sectionID)):
+                return pushSectionDetail(sectionID, autoFocusSearch: true, state: &state)
 
             case let .view(.itemTapped(id)):
                 guard let item = state.sections.lazy.compactMap({ $0.items[id: id] }).first
@@ -132,8 +131,26 @@ struct HomeFeature {
             case let .path(.element(id: _, action: .sectionDetail(.delegate(.itemTapped(item))))):
                 return openItem(item, state: &state)
 
+            case let .path(.element(id: _, action: .sectionDetail(.delegate(.authorTapped(ref))))):
+                let alreadyOnPath = state.path.contains { pathState in
+                    guard case let .authorDetail(authorState) = pathState else { return false }
+                    return authorState.author.id == ref.id
+                }
+                if !alreadyOnPath {
+                    state.path.append(.authorDetail(AuthorDetailFeature.State(author: ref)))
+                }
+                return .none
+
             case let .path(.element(id: _, action: .albumDetail(.delegate(.itemTapped(item))))):
                 return openItem(item, state: &state)
+
+            case let .path(.element(id: _, action: .authorDetail(.delegate(.itemTapped(item))))):
+                return openItem(item, state: &state)
+
+            case .path(.element(id: _, action: .authorDetail(.delegate(.didPaginate)))):
+                // No author cache on HomeFeature.State to keep in step (unlike
+                // albumDetail). If one is added later, sync it here.
+                return .none
 
             case let .path(.element(id: elementID, action: .albumDetail(.delegate(.didPaginate)))):
                 // Keep the parent's album cache in step with the pages the user
@@ -163,6 +180,24 @@ struct HomeFeature {
         }
         .forEach(\.path, action: \.path)
         .ifLet(\.$preview, action: \.preview)
+    }
+
+    private func pushSectionDetail(
+        _ sectionID: HomeSection.ID,
+        autoFocusSearch: Bool,
+        state: inout State
+    ) -> Effect<Action> {
+        guard let section = state.sections[id: sectionID] else { return .none }
+        state.path.append(
+            .sectionDetail(
+                SectionDetailFeature.State(
+                    section: section,
+                    albums: state.albums,
+                    autoFocusSearch: autoFocusSearch
+                )
+            )
+        )
+        return .none
     }
 
     private func openItem(_ item: HomeSectionItem, state: inout State) -> Effect<Action> {
@@ -204,6 +239,20 @@ enum MediaKind: String, Codable, Equatable {
     case album
 }
 
+/// A person credited on a media item -- the artist for a song, the photographer
+/// for a photo. `id` is the stable slug the app keys on; `nodeID` is the Relay
+/// global id used to page `AuthorDetailFeature` via `node(id:)` and is
+/// server-only (omitted from `CodingKeys`, empty in the JSON-fixture path).
+struct AuthorRef: Identifiable, Equatable, Hashable, Codable, Sendable {
+    var id: String
+    var name: String
+    var nodeID: String = ""
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name
+    }
+}
+
 struct HomeSectionItem: Identifiable, Equatable, Codable, Sendable {
     var id: String
     var kind: MediaKind
@@ -213,13 +262,17 @@ struct HomeSectionItem: Identifiable, Equatable, Codable, Sendable {
     var detail: String
     var imageURL: URL?
     var albumID: Album.ID?
+    /// The item's credited author (song artist / photographer). Populated from
+    /// the server's `author { id slug name }`; may be present in the JSON
+    /// fixtures as `{ "id", "name" }`.
+    var author: AuthorRef?
     /// Relay global id of the album this item *is*, when `kind == .album`. Lets a
     /// tap resolve an album that isn't in the loaded `albums` page via `node(id:)`.
     /// Server-only; absent from the bundled JSON fixtures (see `CodingKeys`).
     var albumNodeID: String? = nil
 
     private enum CodingKeys: String, CodingKey {
-        case id, kind, title, subtitle, systemImage, detail, imageURL, albumID
+        case id, kind, title, subtitle, systemImage, detail, imageURL, albumID, author
     }
 }
 

@@ -19,6 +19,13 @@ struct HomeClient: Sendable {
     /// Full album + its first page of items, for tapping an album that wasn't in
     /// the loaded `albums` page.
     var loadAlbumNode: @Sendable (_ nodeID: String) async throws -> Album
+    /// One page of search results (media entries + matched authors), optionally
+    /// scoped to a section's slug. Fuzzy/typo-tolerant server-side; a plain
+    /// case/diacritic-insensitive substring match in the JSON-fixture fallback.
+    var search: @Sendable (_ query: String, _ sectionID: HomeSection.ID?, _ after: String?) async throws -> SearchResults
+    /// Next page of one author's items, keyed on the author's Relay global id
+    /// (or slug in the fixture fallback).
+    var loadAuthorItems: @Sendable (_ authorID: String, _ after: String?) async throws -> Page<HomeSectionItem>
 }
 
 extension HomeClient: DependencyKey {
@@ -41,6 +48,60 @@ extension HomeClient: DependencyKey {
             throw HomeClientError.resourceMissing
         }
         return try JSONDecoder().decode([Album].self, from: Data(contentsOf: url))
+    }
+
+    private static func fold(_ string: String) -> String {
+        string.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+    }
+
+    /// JSON-fixture fallback for `search`: substring match on title / author name
+    /// / parent-album title over the bundled (unpaginated) section items.
+    private static func localSearch(query: String, sectionID: HomeSection.ID?) throws -> SearchResults {
+        let needle = fold(query).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !needle.isEmpty else { return .empty }
+
+        let sections = try bundledSections()
+        let scoped = sectionID.map { id in sections.filter { $0.id == id } } ?? sections
+        let albumTitles = Dictionary(
+            (try bundledAlbums()).map { ($0.id, $0.title) }, uniquingKeysWith: { first, _ in first }
+        )
+        func matches(_ value: String?) -> Bool {
+            guard let value else { return false }
+            return fold(value).contains(needle)
+        }
+
+        var seenEntry = Set<String>()
+        var entries: [HomeSectionItem] = []
+        var seenAuthor = Set<String>()
+        var authors: [AuthorRef] = []
+        for section in scoped {
+            for item in section.items {
+                if seenEntry.insert(item.id).inserted,
+                   matches(item.title) || matches(item.author?.name)
+                    || matches(item.albumID.flatMap { albumTitles[$0] }) {
+                    entries.append(item)
+                }
+                if let author = item.author, matches(author.name),
+                   seenAuthor.insert(author.id).inserted {
+                    authors.append(author)
+                }
+            }
+        }
+        return SearchResults(
+            entries: Page(
+                elements: IdentifiedArray(uniqueElements: entries), cursor: nil, hasMore: false
+            ),
+            authors: authors
+        )
+    }
+
+    private static func localAuthorItems(authorID: String) throws -> Page<HomeSectionItem> {
+        let matches = try bundledSections()
+            .flatMap(\.items)
+            .filter { $0.author?.id == authorID || $0.author?.nodeID == authorID }
+        return Page(
+            elements: IdentifiedArray(uniqueElements: matches), cursor: nil, hasMore: false
+        )
     }
 
     static let liveValue = HomeClient {
@@ -71,6 +132,18 @@ extension HomeClient: DependencyKey {
             return try await MiyaGraphQLClient(baseURL: serverURL).loadAlbumNode(nodeID: nodeID)
         }
         throw HomeClientError.resourceMissing
+    } search: { query, sectionID, after in
+        if let serverURL {
+            return try await MiyaGraphQLClient(baseURL: serverURL)
+                .search(query: query, sectionSlug: sectionID, after: after)
+        }
+        return try localSearch(query: query, sectionID: sectionID)
+    } loadAuthorItems: { authorID, after in
+        if let serverURL {
+            return try await MiyaGraphQLClient(baseURL: serverURL)
+                .loadAuthorItems(authorNodeID: authorID, after: after)
+        }
+        return try localAuthorItems(authorID: authorID)
     }
 
     static let previewValue = HomeClient {
@@ -89,6 +162,39 @@ extension HomeClient: DependencyKey {
                 imageURL: nil,
                 items: []
             )
+    } search: { query, sectionID, _ in
+        let needle = fold(query).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !needle.isEmpty else { return .empty }
+        let sections = sectionID.map { id in HomeSection.mocks.filter { $0.id == id } } ?? HomeSection.mocks
+        var seenEntry = Set<String>()
+        var entries: [HomeSectionItem] = []
+        var seenAuthor = Set<String>()
+        var authors: [AuthorRef] = []
+        for item in sections.flatMap(\.items) {
+            let hay = fold(item.title + " " + (item.author?.name ?? ""))
+            if hay.contains(needle), seenEntry.insert(item.id).inserted { entries.append(item) }
+            if let author = item.author, fold(author.name).contains(needle),
+               seenAuthor.insert(author.id).inserted {
+                authors.append(author)
+            }
+        }
+        return SearchResults(
+            elements: entries, authors: authors
+        )
+    } loadAuthorItems: { authorID, after in
+        Album.mockAuthorItemPage(authorID: authorID, after: after)
+    }
+}
+
+extension SearchResults {
+    /// Convenience for building an unpaginated preview/fixture result.
+    init(elements: [HomeSectionItem], authors: [AuthorRef]) {
+        self.init(
+            entries: Page(
+                elements: IdentifiedArray(uniqueElements: elements), cursor: nil, hasMore: false
+            ),
+            authors: authors
+        )
     }
 }
 
@@ -121,7 +227,10 @@ extension HomeSection {
                     imageURL: index == 7
                         ? nil
                         : URL(string: "https://picsum.photos/seed/miya-track-\(index)/600"),
-                    albumID: (index == 3 || index == 4) ? Album.mockAlbumID : nil
+                    albumID: (index == 3 || index == 4) ? Album.mockAlbumID : nil,
+                    author: (index == 3 || index == 4)
+                        ? AuthorRef(id: "radiohead", name: "Radiohead", nodeID: "node-radiohead")
+                        : AuthorRef(id: "artist-\(index)", name: "Artist \(index)", nodeID: "node-artist-\(index)")
                 )
             } + [
                 HomeSectionItem(
@@ -149,7 +258,8 @@ extension HomeSection {
                     imageURL: index == 6
                         ? nil
                         : URL(string: "https://picsum.photos/seed/miya-photo-\(index)/800/600"),
-                    albumID: (index == 2 || index == 3) ? Album.mockPhotoAlbumID : nil
+                    albumID: (index == 2 || index == 3) ? Album.mockPhotoAlbumID : nil,
+                    author: AuthorRef(id: "steven-hurtado", name: "Steven Hurtado", nodeID: "node-steven-hurtado")
                 )
             } + [
                 HomeSectionItem(
@@ -195,6 +305,31 @@ extension Album {
         )
     }
 
+    /// Synthetic paged author library for previews: 3 pages of 6, then `hasMore: false`.
+    static func mockAuthorItemPage(authorID: String, after: String?) -> Page<HomeSectionItem> {
+        let pageIndex = Int(after ?? "0") ?? 0
+        let base = 1 + pageIndex * 6
+        let items = (base ..< base + 6).map { n in
+            HomeSectionItem(
+                id: "\(authorID)-item-\(n)",
+                kind: .song,
+                title: "By \(authorID) \(n)",
+                subtitle: authorID,
+                systemImage: "music.note",
+                detail: "Synthetic author-library item \(n).",
+                imageURL: URL(string: "https://picsum.photos/seed/miya-\(authorID)-\(n)/600"),
+                albumID: nil,
+                author: AuthorRef(id: authorID, name: authorID, nodeID: authorID)
+            )
+        }
+        let next = pageIndex + 1
+        return Page(
+            elements: IdentifiedArray(uniqueElements: items),
+            cursor: next < 3 ? "\(next)" : nil,
+            hasMore: next < 3
+        )
+    }
+
     /// Lightweight fixtures for previews and tests. The shipped mock data lives in
     /// `Miya/Resources/albums.json` and is exercised through `HomeClient.liveValue`.
     static let mocks: [Album] = [
@@ -213,7 +348,8 @@ extension Album {
                     systemImage: "music.note",
                     detail: "Preview fixture track number \(index).",
                     imageURL: URL(string: "https://picsum.photos/seed/miya-track-\(index)/600"),
-                    albumID: mockAlbumID
+                    albumID: mockAlbumID,
+                    author: AuthorRef(id: "radiohead", name: "Radiohead", nodeID: "node-radiohead")
                 )
             }),
             nodeID: "node-\(mockAlbumID)",
@@ -235,7 +371,8 @@ extension Album {
                     systemImage: "photo",
                     detail: "Preview fixture photo number \(index).",
                     imageURL: URL(string: "https://picsum.photos/seed/miya-photo-\(index)/800/600"),
-                    albumID: mockPhotoAlbumID
+                    albumID: mockPhotoAlbumID,
+                    author: AuthorRef(id: "steven-hurtado", name: "Steven Hurtado", nodeID: "node-steven-hurtado")
                 )
             }),
             nodeID: "node-\(mockPhotoAlbumID)",

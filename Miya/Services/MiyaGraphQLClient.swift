@@ -30,6 +30,28 @@ struct MiyaGraphQLClient {
 
     // MARK: - Queries
 
+    /// Scalar fields shared by every Song / Photo selection. `author` / `album`
+    /// are the sub-objects the search filter and the "view album" affordance
+    /// need; `GQLSectionEntry` decodes them as optionals.
+    private static let mediaFields =
+        "id slug title subtitle systemImage detail imageUrl author { id slug name } album { slug }"
+    private static let albumEntryFields = "id slug title subtitle systemImage imageUrl"
+
+    /// A `SectionEntry` selection that includes album cards (sections, search).
+    private static let sectionEntryNodes = """
+              __typename
+              ... on Song  { \(mediaFields) }
+              ... on Photo { \(mediaFields) }
+              ... on Album { \(albumEntryFields) }
+    """
+
+    /// A media-only selection (an album's / author's items are songs & photos).
+    private static let mediaEntryNodes = """
+              __typename
+              ... on Song  { \(mediaFields) }
+              ... on Photo { \(mediaFields) }
+    """
+
     private static let sectionsQuery = """
     query Sections {
       sections {
@@ -37,10 +59,7 @@ struct MiyaGraphQLClient {
         slug
         title
         items {
-          __typename
-          ... on Song  { id slug title subtitle systemImage detail imageUrl }
-          ... on Photo { id slug title subtitle systemImage detail imageUrl }
-          ... on Album { id slug title subtitle systemImage imageUrl }
+    \(sectionEntryNodes)
         }
       }
     }
@@ -60,9 +79,7 @@ struct MiyaGraphQLClient {
             items(first: $first) {
               edges {
                 node {
-                  __typename
-                  ... on Song  { id slug title subtitle systemImage detail imageUrl }
-                  ... on Photo { id slug title subtitle systemImage detail imageUrl }
+    \(mediaEntryNodes)
                 }
                 cursor
               }
@@ -84,9 +101,7 @@ struct MiyaGraphQLClient {
           items(first: $first, after: $after) {
             edges {
               node {
-                __typename
-                ... on Song  { id slug title subtitle systemImage detail imageUrl }
-                ... on Photo { id slug title subtitle systemImage detail imageUrl }
+    \(mediaEntryNodes)
               }
               cursor
             }
@@ -111,9 +126,43 @@ struct MiyaGraphQLClient {
           items(first: $first) {
             edges {
               node {
-                __typename
-                ... on Song  { id slug title subtitle systemImage detail imageUrl }
-                ... on Photo { id slug title subtitle systemImage detail imageUrl }
+    \(mediaEntryNodes)
+              }
+              cursor
+            }
+            pageInfo { hasNextPage endCursor }
+          }
+        }
+      }
+    }
+    """
+
+    private static let searchQuery = """
+    query Search($query: String!, $sectionSlug: String, $first: Int!, $after: String) {
+      search(query: $query, sectionSlug: $sectionSlug, first: $first, after: $after) {
+        entries {
+          edges {
+            node {
+    \(sectionEntryNodes)
+            }
+            cursor
+          }
+          pageInfo { hasNextPage endCursor }
+        }
+        authors { id slug name }
+      }
+    }
+    """
+
+    private static let authorItemsQuery = """
+    query AuthorItems($id: ID!, $first: Int!, $after: String) {
+      node(id: $id) {
+        __typename
+        ... on Author {
+          items(first: $first, after: $after) {
+            edges {
+              node {
+    \(mediaEntryNodes)
               }
               cursor
             }
@@ -164,6 +213,30 @@ struct MiyaGraphQLClient {
         return album.toAlbum()
     }
 
+    /// One page of search results (media entries + matched authors), optionally
+    /// scoped to a section slug.
+    func search(query: String, sectionSlug: String?, after: String?) async throws -> SearchResults {
+        let data: SearchQueryData = try await execute(
+            Self.searchQuery,
+            variables: SearchVariables(
+                query: query, sectionSlug: sectionSlug, first: Self.pageSize, after: after
+            )
+        )
+        return data.search.toSearchResults()
+    }
+
+    /// Next page of one author's items, addressed by the author's Relay global id.
+    func loadAuthorItems(authorNodeID: String, after: String?) async throws -> Page<HomeSectionItem> {
+        let data: AuthorItemsQueryData = try await execute(
+            Self.authorItemsQuery,
+            variables: NodeItemsVariables(id: authorNodeID, first: Self.pageSize, after: after)
+        )
+        guard let items = data.node?.items else {
+            throw GraphQLRequestError(messages: ["node(id:) had no Author items for \(authorNodeID)"])
+        }
+        return items.toItemPage()
+    }
+
     // MARK: - Transport
 
     private struct GraphQLRequest<V: Encodable>: Encodable {
@@ -187,6 +260,13 @@ struct MiyaGraphQLClient {
     private struct NodeVariables: Encodable {
         let id: String
         let first: Int
+    }
+
+    private struct SearchVariables: Encodable {
+        let query: String
+        let sectionSlug: String?
+        let first: Int
+        let after: String?
     }
 
     private func execute<V: Encodable, T: Decodable>(
