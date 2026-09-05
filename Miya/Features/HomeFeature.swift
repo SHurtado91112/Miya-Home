@@ -40,16 +40,6 @@ struct HomeFeature {
             self.sections = sections
             self.albums = albums
         }
-
-        /// `sections` with album-member tiles hidden in each section; the album's
-        /// own tile stands in for its members. Observes both `sections` and `albums`.
-        var visibleSections: IdentifiedArrayOf<HomeSection> {
-            sections.reduce(into: []) { result, section in
-                var copy = section
-                copy.items = section.items.collapsingAlbumMembers(against: albums)
-                result.append(copy)
-            }
-        }
     }
 
     enum Action: ViewAction {
@@ -64,16 +54,13 @@ struct HomeFeature {
         case sectionsResponse(IdentifiedArrayOf<HomeSection>)
         case albumsResponse(Page<Album>)
         case albumFetched(Album)
-        /// Albums referenced by section items but not in the eagerly-loaded
-        /// `albums` page, fetched so their members can be collapsed.
-        case referencedAlbumsFetched([Album])
         case path(StackActionOf<Path>)
         case preview(PresentationAction<MediaPreview.Action>)
     }
 
     @Dependency(\.homeClient) var homeClient
 
-    private enum CancelID { case sections, referencedAlbums }
+    private enum CancelID { case sections }
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -101,18 +88,12 @@ struct HomeFeature {
 
             case let .sectionsResponse(sections):
                 state.sections = sections
-                return resolveMissingAlbums(state: state)
+                return .none
 
             case let .albumsResponse(page):
                 state.albums = page.elements
                 state.albumsCursor = page.cursor
                 state.albumsHasMore = page.hasMore
-                return resolveMissingAlbums(state: state)
-
-            case let .referencedAlbumsFetched(albums):
-                for album in albums {
-                    state.albums[id: album.id] = album
-                }
                 return .none
 
             case let .albumFetched(album):
@@ -191,34 +172,6 @@ struct HomeFeature {
         .ifLet(\.$preview, action: \.preview)
     }
 
-    /// Fetch any album a section item points at (`albumID`) that isn't already in
-    /// `state.albums`, so `collapsingAlbumMembers` can hide those members. Home
-    /// only eagerly loads the first `albums` page, so on a large library most
-    /// referenced albums are otherwise missing. Fetches run in parallel; a slug
-    /// the server can't resolve is simply skipped.
-    private func resolveMissingAlbums(state: State) -> Effect<Action> {
-        let referenced = Set(state.sections.flatMap(\.items).compactMap(\.albumID))
-        let missing = referenced.subtracting(state.albums.ids)
-        guard !missing.isEmpty else { return .none }
-        return .run { send in
-            let albums = await withTaskGroup(of: Album?.self) { group in
-                for slug in missing {
-                    // A slug the server can't resolve (or a transient failure)
-                    // is skipped; the others still merge.
-                    group.addTask { try? await homeClient.loadAlbum(slug) }
-                }
-                var resolved: [Album] = []
-                for await album in group {
-                    if let album { resolved.append(album) }
-                }
-                return resolved
-            }
-            guard !albums.isEmpty else { return }
-            await send(.referencedAlbumsFetched(albums))
-        }
-        .cancellable(id: CancelID.referencedAlbums, cancelInFlight: true)
-    }
-
     private func pushSectionDetail(
         _ sectionID: HomeSection.ID,
         autoFocusSearch: Bool,
@@ -227,11 +180,7 @@ struct HomeFeature {
         guard let section = state.sections[id: sectionID] else { return .none }
         state.path.append(
             .sectionDetail(
-                SectionDetailFeature.State(
-                    section: section,
-                    albums: state.albums,
-                    autoFocusSearch: autoFocusSearch
-                )
+                SectionDetailFeature.State(section: section, autoFocusSearch: autoFocusSearch)
             )
         )
         return .none
@@ -307,6 +256,10 @@ struct HomeSectionItem: Identifiable, Equatable, Codable, Sendable {
     /// tap resolve an album that isn't in the loaded `albums` page via `node(id:)`.
     /// Server-only; absent from the bundled JSON fixtures (see `CodingKeys`).
     var albumNodeID: String? = nil
+    /// For `kind == .album`: a few member cover URLs (`items(first: 3)`) so the
+    /// grid can render the fanned `StackedCoverCard` without loading the full
+    /// album. Server-only.
+    var coverPreviewURLs: [URL] = []
 
     private enum CodingKeys: String, CodingKey {
         case id, kind, title, subtitle, systemImage, detail, imageURL, albumID, author

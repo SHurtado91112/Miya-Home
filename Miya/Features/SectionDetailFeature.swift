@@ -16,7 +16,6 @@ struct SectionDetailFeature {
     @ObservableState
     struct State: Equatable, Identifiable {
         var section: HomeSection
-        var albums: IdentifiedArrayOf<Album> = []
 
         var query: String = ""
         /// Set when this screen was reached by tapping the section's search bar,
@@ -35,15 +34,10 @@ struct SectionDetailFeature {
             !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
 
-        /// `section.items` with album-member tiles hidden; the album's own tile stands in.
-        var visibleItems: IdentifiedArrayOf<HomeSectionItem> {
-            section.items.collapsingAlbumMembers(against: albums)
-        }
-
-        /// What the grid renders: server results while searching, else the
-        /// collapsed section list.
+        /// What the grid renders: server search results while searching, else the
+        /// section's items (already album-folded by the server).
         var displayedItems: IdentifiedArrayOf<HomeSectionItem> {
-            isSearching ? searchEntries : visibleItems
+            isSearching ? searchEntries : section.items
         }
 
         var showsEmptyState: Bool {
@@ -201,8 +195,8 @@ struct SectionDetailView: View {
                         Button {
                             send(.itemTapped(item.id))
                         } label: {
-                            if item.kind == .album, let album = store.albums[id: item.id] {
-                                StackedCoverCard(album: album, size: Self.detailCardSize)
+                            if item.kind == .album {
+                                StackedCoverCard(item: item, size: Self.detailCardSize)
                             } else {
                                 PreviewCard(item: item, size: Self.detailCardSize)
                             }
@@ -248,10 +242,7 @@ struct SectionDetailView: View {
     NavigationStack {
         SectionDetailView(
             store: Store(
-                initialState: SectionDetailFeature.State(
-                    section: HomeSection.mocks[0],
-                    albums: IdentifiedArray(uniqueElements: Album.mocks)
-                )
+                initialState: SectionDetailFeature.State(section: HomeSection.mocks[0])
             ) {
                 SectionDetailFeature()
             } withDependencies: {

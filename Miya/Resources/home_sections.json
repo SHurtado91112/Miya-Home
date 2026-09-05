@@ -24,17 +24,6 @@
         "author": { "id": "childish-gambino", "name": "Childish Gambino" }
       },
       {
-        "id": "weird-fishes",
-        "kind": "song",
-        "title": "Weird Fishes / Arpeggi",
-        "subtitle": "Radiohead",
-        "systemImage": "music.note",
-        "detail": "Track 4 on In Rainbows (2007). Arpeggiated guitars over a shifting pulse.",
-        "imageURL": "https://picsum.photos/seed/miya-weird-fishes/600",
-        "albumID": "in-rainbows",
-        "author": { "id": "radiohead", "name": "Radiohead" }
-      },
-      {
         "id": "in-rainbows",
         "kind": "album",
         "title": "In Rainbows",
@@ -98,28 +87,6 @@
     "id": "photos",
     "title": "Photos",
     "items": [
-      {
-        "id": "sunrise-ridge",
-        "kind": "photo",
-        "title": "Sunrise Ridge",
-        "subtitle": "Yesterday, 6:14 AM",
-        "systemImage": "photo",
-        "detail": "Alpenglow on the east ridge. ISO 100, f/8, 1/125s.",
-        "imageURL": "https://picsum.photos/seed/miya-sunrise-ridge/800/600",
-        "albumID": "yesterday-morning",
-        "author": { "id": "steven-hurtado", "name": "Steven Hurtado" }
-      },
-      {
-        "id": "harbor-fog",
-        "kind": "photo",
-        "title": "Harbor Fog",
-        "subtitle": "Mon, 7:02 AM",
-        "systemImage": "photo",
-        "detail": "Low fog rolling over the marina before the boats woke up.",
-        "imageURL": "https://picsum.photos/seed/miya-harbor-fog/800/600",
-        "albumID": "yesterday-morning",
-        "author": { "id": "steven-hurtado", "name": "Steven Hurtado" }
-      },
       {
         "id": "yesterday-morning",
         "kind": "album",

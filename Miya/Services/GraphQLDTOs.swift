@@ -65,7 +65,7 @@ struct GQLAlbumRef: Decodable {
 /// A `SectionEntry` union member (Song | Photo | Album) flattened into one
 /// decode target, discriminated by `__typename`. `id` is the Relay global id,
 /// `slug` the human id the app uses as its domain `id`. `author` / `album` are
-/// present only on Song / Photo.
+/// present only on Song / Photo; `items` (a 3-cover preview) only on Album.
 struct GQLSectionEntry: Decodable {
     let __typename: String
     let id: String
@@ -77,6 +77,7 @@ struct GQLSectionEntry: Decodable {
     let imageUrl: String?
     let author: GQLAuthorRef?
     let album: GQLAlbumRef?
+    let items: GQLConnection<GQLSectionEntry>?
 }
 
 struct GQLAlbum: Decodable {
@@ -131,12 +132,6 @@ struct AlbumNodeQueryData: Decodable {
     let node: GQLAlbumNode?
 }
 
-/// `album(slug:)` — a single album, for backfilling the ones a section's items
-/// reference so they can be collapsed.
-struct AlbumBySlugQueryData: Decodable {
-    let album: GQLAlbum?
-}
-
 /// `search(query:, sectionSlug:, first:, after:)` payload.
 struct GQLSearchResult: Decodable {
     let entries: GQLConnection<GQLSectionEntry>
@@ -181,7 +176,8 @@ extension GQLSectionEntry {
             imageURL: imageUrl.flatMap(URL.init),
             albumID: album?.slug,
             author: author.map { AuthorRef(id: $0.slug, name: $0.name, nodeID: $0.id) },
-            albumNodeID: kind == .album ? id : nil
+            albumNodeID: kind == .album ? id : nil,
+            coverPreviewURLs: items?.nodes.compactMap { $0.imageUrl.flatMap(URL.init) } ?? []
         )
     }
 }

@@ -18,8 +18,8 @@ struct HomeView: View {
                 // Header
                 Text(store.title).font(.largeTitle).listRowSeparator(.hidden)
 
-                // Sections
-                ForEach(store.visibleSections) { section in
+                // Sections (album members are folded server-side)
+                ForEach(store.sections) { section in
                     Section {
                         SearchBarButton(placeholder: "Search \(section.title)") {
                             send(.searchTapped(sectionID: section.id))
@@ -32,8 +32,8 @@ struct HomeView: View {
                                 Button {
                                     send(.itemTapped(id: item.id))
                                 } label: {
-                                    if item.kind == .album, let album = store.albums[id: item.id] {
-                                        StackedCoverCard(album: album)
+                                    if item.kind == .album {
+                                        StackedCoverCard(item: item)
                                     } else {
                                         PreviewCard(item: item)
                                     }

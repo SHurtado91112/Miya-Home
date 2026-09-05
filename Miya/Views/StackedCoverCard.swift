@@ -89,6 +89,22 @@ struct StackedCoverCard: View {
 }
 
 extension StackedCoverCard {
+    /// Builds the fan for a `kind == .album` section entry: its member cover
+    /// previews (`coverPreviewURLs`, server-provided `items(first: 3)`) behind
+    /// the album's own cover. No dependency on a loaded `Album`.
+    init(item: HomeSectionItem, size: CGFloat = PreviewCard.cardSize) {
+        let albumCover = Cover(id: 99, systemImage: item.systemImage, imageURL: item.imageURL)
+        let members = item.coverPreviewURLs.prefix(2).enumerated().map { index, url in
+            Cover(id: index, systemImage: item.systemImage, imageURL: url)
+        }
+        self.init(
+            title: item.title,
+            covers: members + [albumCover],
+            size: size,
+            accessibilityText: "\(item.title), album"
+        )
+    }
+
     init(album: Album, size: CGFloat = PreviewCard.cardSize) {
         let albumCover = Cover(id: 99, systemImage: album.systemImage, imageURL: album.imageURL)
         let members = album.items

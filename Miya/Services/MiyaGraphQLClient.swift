@@ -35,7 +35,12 @@ struct MiyaGraphQLClient {
     /// need; `GQLSectionEntry` decodes them as optionals.
     private static let mediaFields =
         "id slug title subtitle systemImage detail imageUrl author { id slug name } album { slug }"
-    private static let albumEntryFields = "id slug title subtitle systemImage imageUrl"
+    /// Album-card fields for a `SectionEntry`. `items(first: 3)` is a small cover
+    /// preview so the grid can fan a `StackedCoverCard` without loading the album.
+    private static let albumEntryFields = """
+    id slug title subtitle systemImage imageUrl
+    items(first: 3) { edges { node { __typename ... on Song { imageUrl } ... on Photo { imageUrl } } } }
+    """
 
     /// A `SectionEntry` selection that includes album cards (sections, search).
     private static let sectionEntryNodes = """
@@ -137,28 +142,6 @@ struct MiyaGraphQLClient {
     }
     """
 
-    private static let albumBySlugQuery = """
-    query Album($slug: String!, $first: Int!) {
-      album(slug: $slug) {
-        id
-        slug
-        title
-        subtitle
-        systemImage
-        imageUrl
-        items(first: $first) {
-          edges {
-            node {
-    \(mediaEntryNodes)
-            }
-            cursor
-          }
-          pageInfo { hasNextPage endCursor }
-        }
-      }
-    }
-    """
-
     private static let searchQuery = """
     query Search($query: String!, $sectionSlug: String, $first: Int!, $after: String) {
       search(query: $query, sectionSlug: $sectionSlug, first: $first, after: $after) {
@@ -235,17 +218,6 @@ struct MiyaGraphQLClient {
         return album.toAlbum()
     }
 
-    /// A single album + its first page of items, addressed by slug. Used to
-    /// backfill the albums a section's items reference so `collapsingAlbumMembers`
-    /// can hide them (Home only eagerly loads the first `albums` page).
-    func loadAlbum(slug: String) async throws -> Album? {
-        let data: AlbumBySlugQueryData = try await execute(
-            Self.albumBySlugQuery,
-            variables: AlbumSlugVariables(slug: slug, first: Self.pageSize)
-        )
-        return data.album?.toAlbum()
-    }
-
     /// One page of search results (media entries + matched authors), optionally
     /// scoped to a section slug.
     func search(query: String, sectionSlug: String?, after: String?) async throws -> SearchResults {
@@ -302,10 +274,6 @@ struct MiyaGraphQLClient {
         let after: String?
     }
 
-    private struct AlbumSlugVariables: Encodable {
-        let slug: String
-        let first: Int
-    }
 
     private func execute<V: Encodable, T: Decodable>(
         _ query: String,
