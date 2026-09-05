@@ -65,7 +65,11 @@ struct SectionDetailView: View {
                 Text(store.section.title).font(.largeTitle)
 
                 LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: Self.detailCardSize), spacing: 16)],
+                    columns: [GridItem(
+                        .adaptive(minimum: Self.detailCardSize, maximum: Self.detailCardSize),
+                        spacing: 16
+                    )],
+                    alignment: .leading,
                     spacing: 16
                 ) {
                     ForEach(store.visibleItems) { item in
