@@ -131,6 +131,12 @@ struct AlbumNodeQueryData: Decodable {
     let node: GQLAlbumNode?
 }
 
+/// `album(slug:)` — a single album, for backfilling the ones a section's items
+/// reference so they can be collapsed.
+struct AlbumBySlugQueryData: Decodable {
+    let album: GQLAlbum?
+}
+
 /// `search(query:, sectionSlug:, first:, after:)` payload.
 struct GQLSearchResult: Decodable {
     let entries: GQLConnection<GQLSectionEntry>
