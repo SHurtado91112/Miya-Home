@@ -37,6 +37,16 @@ struct HomeFeature {
             self.sections = sections
             self.albums = albums
         }
+
+        /// `sections` with album-member tiles hidden in each section; the album's
+        /// own tile stands in for its members. Observes both `sections` and `albums`.
+        var visibleSections: IdentifiedArrayOf<HomeSection> {
+            sections.reduce(into: []) { result, section in
+                var copy = section
+                copy.items = section.items.collapsingAlbumMembers(against: albums)
+                result.append(copy)
+            }
+        }
     }
 
     enum Action: ViewAction {
@@ -79,7 +89,11 @@ struct HomeFeature {
 
             case let .view(.moreTapped(sectionID)):
                 guard let section = state.sections[id: sectionID] else { return .none }
-                state.path.append(.sectionDetail(SectionDetailFeature.State(section: section)))
+                state.path.append(
+                    .sectionDetail(
+                        SectionDetailFeature.State(section: section, albums: state.albums)
+                    )
+                )
                 return .none
 
             case let .view(.itemTapped(id)):
