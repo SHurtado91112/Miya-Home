@@ -20,7 +20,13 @@ struct HomeView: View {
 
                 // Sections
                 ForEach(store.visibleSections) { section in
-                    Section(section.title) {
+                    Section {
+                        SearchBarButton(placeholder: "Search \(section.title)") {
+                            send(.searchTapped(sectionID: section.id))
+                        }
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 8, trailing: 0))
+
                         LazyVGrid(columns: .justifiedTriple, spacing: 16) {
                             ForEach(section.items.prefix(HomeFeature.previewLimit)) { item in
                                 Button {
@@ -44,7 +50,10 @@ struct HomeView: View {
                                 .buttonStyle(.plain)
                             }
                         }
-                    }.font(.headline).textCase(nil).listRowSeparator(.hidden)
+                    } header: {
+                        Text(section.title)
+                    }
+                    .font(.headline).textCase(nil).listRowSeparator(.hidden)
                 }
             }
             .listStyle(.grouped)
@@ -67,6 +76,8 @@ struct HomeView: View {
                 SectionDetailView(store: sectionStore, collapsedPreviewHeight: store.preview?.collapsedHeight)
             case let .albumDetail(albumStore):
                 AlbumDetailView(store: albumStore, collapsedPreviewHeight: store.preview?.collapsedHeight)
+            case let .authorDetail(authorStore):
+                AuthorDetailView(store: authorStore, collapsedPreviewHeight: store.preview?.collapsedHeight)
             }
         }
         .tint(.primary)
