@@ -48,6 +48,9 @@ struct HomeView: View {
             .listSectionSpacing(32)
             .padding(16)
             .scrollClipDisabled()
+            .refreshable {
+                await send(.refreshed).finish()
+            }
             .safeAreaInset(edge: .bottom) {
                 if let height = store.preview?.collapsedHeight {
                     Color.clear.frame(height: height)
