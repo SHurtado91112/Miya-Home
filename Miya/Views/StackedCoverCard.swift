@@ -43,8 +43,11 @@ struct StackedCoverCard: View {
                     imageURL: cover.imageURL,
                     size: size * scale(for: layers.count)
                 )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(.black.opacity(darkening(index: index, count: layers.count)))
+                )
                 .shadow(color: .black.opacity(0.15), radius: 2, x: 0, y: 1)
-                .opacity(opacity(index: index, count: layers.count))
                 .offset(offset(index: index, count: layers.count))
                 .zIndex(Double(index)) // last cover drawn on top
             }
@@ -78,10 +81,10 @@ struct StackedCoverCard: View {
         }
     }
 
-    /// Fades each cover the further back it sits — the front cover is fully opaque.
-    private func opacity(index: Int, count: Int) -> Double {
+    /// Darkens each cover the further back it sits — the front cover is untouched.
+    private func darkening(index: Int, count: Int) -> Double {
         let depth = count - 1 - index // 0 for the front cover
-        return max(0.4, 1.0 - Double(depth) * 0.3)
+        return min(0.5, Double(depth) * 0.24)
     }
 }
 
