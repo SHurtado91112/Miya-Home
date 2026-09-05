@@ -52,6 +52,7 @@ struct HomeFeature {
     enum Action: ViewAction {
         enum View {
             case onAppear
+            case refreshed
             case moreTapped(sectionID: HomeSection.ID)
             case itemTapped(id: HomeSectionItem.ID)
         }
@@ -63,6 +64,8 @@ struct HomeFeature {
     }
 
     @Dependency(\.homeClient) var homeClient
+
+    private enum CancelID { case sections }
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -78,6 +81,15 @@ struct HomeFeature {
                 } catch: { error, _ in
                     reportIssue(error, "HomeClient.loadSections/loadAlbums failed")
                 }
+
+            case .view(.refreshed):
+                return .run { send in
+                    let sections = try await homeClient.loadSections()
+                    await send(.sectionsResponse(sections))
+                } catch: { error, _ in
+                    reportIssue(error, "HomeClient.loadSections failed on refresh")
+                }
+                .cancellable(id: CancelID.sections, cancelInFlight: true)
 
             case let .sectionsResponse(sections):
                 state.sections = sections
