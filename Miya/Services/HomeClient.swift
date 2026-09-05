@@ -19,6 +19,10 @@ struct HomeClient: Sendable {
     /// Full album + its first page of items, for tapping an album that wasn't in
     /// the loaded `albums` page.
     var loadAlbumNode: @Sendable (_ nodeID: String) async throws -> Album
+    /// A single album by slug — used to backfill the albums a section's items
+    /// reference (Home only eagerly loads the first `albums` page) so
+    /// `collapsingAlbumMembers` can hide them. `nil` if the server has no such album.
+    var loadAlbum: @Sendable (_ slug: String) async throws -> Album?
     /// One page of search results (media entries + matched authors), optionally
     /// scoped to a section's slug. Fuzzy/typo-tolerant server-side; a plain
     /// case/diacritic-insensitive substring match in the JSON-fixture fallback.
@@ -132,6 +136,11 @@ extension HomeClient: DependencyKey {
             return try await MiyaGraphQLClient(baseURL: serverURL).loadAlbumNode(nodeID: nodeID)
         }
         throw HomeClientError.resourceMissing
+    } loadAlbum: { slug in
+        if let serverURL {
+            return try await MiyaGraphQLClient(baseURL: serverURL).loadAlbum(slug: slug)
+        }
+        return try bundledAlbums().first { $0.id == slug }
     } search: { query, sectionID, after in
         if let serverURL {
             return try await MiyaGraphQLClient(baseURL: serverURL)
@@ -162,6 +171,8 @@ extension HomeClient: DependencyKey {
                 imageURL: nil,
                 items: []
             )
+    } loadAlbum: { slug in
+        Album.mocks.first { $0.id == slug }
     } search: { query, sectionID, _ in
         let needle = fold(query).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !needle.isEmpty else { return .empty }
