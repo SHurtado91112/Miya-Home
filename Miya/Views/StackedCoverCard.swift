@@ -43,10 +43,6 @@ struct StackedCoverCard: View {
                     imageURL: cover.imageURL,
                     size: size * scale(for: layers.count)
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(Color(.systemBackground), lineWidth: 2)
-                )
                 .shadow(color: .black.opacity(0.15), radius: 2, x: 0, y: 1)
                 .opacity(opacity(index: index, count: layers.count))
                 .offset(offset(index: index, count: layers.count))
@@ -60,8 +56,8 @@ struct StackedCoverCard: View {
     private func scale(for count: Int) -> CGFloat {
         switch count {
         case ...1: 1.0
-        case 2: 0.90
-        default: 0.84
+        case 2: 0.93
+        default: 0.88
         }
     }
 
@@ -70,10 +66,10 @@ struct StackedCoverCard: View {
         case ...1:
             return .zero
         case 2:
-            let d = size * 0.04
+            let d = size * 0.022
             return index == 0 ? CGSize(width: -d, height: -d) : CGSize(width: d, height: d)
         default:
-            let d = size * 0.06
+            let d = size * 0.032
             switch index {
             case 0: return CGSize(width: -d, height: -d)
             case 1: return .zero
