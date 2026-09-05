@@ -48,6 +48,7 @@ struct StackedCoverCard: View {
                         .strokeBorder(Color(.systemBackground), lineWidth: 2)
                 )
                 .shadow(color: .black.opacity(0.15), radius: 2, x: 0, y: 1)
+                .opacity(opacity(index: index, count: layers.count))
                 .offset(offset(index: index, count: layers.count))
                 .zIndex(Double(index)) // last cover drawn on top
             }
@@ -59,8 +60,8 @@ struct StackedCoverCard: View {
     private func scale(for count: Int) -> CGFloat {
         switch count {
         case ...1: 1.0
-        case 2: 0.86
-        default: 0.78
+        case 2: 0.90
+        default: 0.84
         }
     }
 
@@ -69,16 +70,22 @@ struct StackedCoverCard: View {
         case ...1:
             return .zero
         case 2:
-            let d = size * 0.07
+            let d = size * 0.04
             return index == 0 ? CGSize(width: -d, height: -d) : CGSize(width: d, height: d)
         default:
-            let d = size * 0.11
+            let d = size * 0.06
             switch index {
             case 0: return CGSize(width: -d, height: -d)
             case 1: return .zero
             default: return CGSize(width: d, height: d)
             }
         }
+    }
+
+    /// Fades each cover the further back it sits — the front cover is fully opaque.
+    private func opacity(index: Int, count: Int) -> Double {
+        let depth = count - 1 - index // 0 for the front cover
+        return max(0.4, 1.0 - Double(depth) * 0.3)
     }
 }
 
