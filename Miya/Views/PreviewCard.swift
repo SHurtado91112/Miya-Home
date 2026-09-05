@@ -7,6 +7,18 @@
 
 import SwiftUI
 
+extension Array where Element == GridItem {
+    /// Three columns that fill the container width and push their content to the
+    /// leading edge, centre, and trailing edge respectively — so a row of cards is
+    /// justified across the full width with equal gaps and equal leading/trailing
+    /// margins (matching the section title's margins).
+    static let justifiedTriple: [GridItem] = [
+        GridItem(.flexible(), spacing: 0, alignment: .leading),
+        GridItem(.flexible(), spacing: 0, alignment: .center),
+        GridItem(.flexible(), spacing: 0, alignment: .trailing),
+    ]
+}
+
 /// A tile in a section grid: a square cover image (or SF Symbol fallback) with
 /// the title below. Used at `cardSize` on Home and larger on the section detail.
 struct PreviewCard: View {

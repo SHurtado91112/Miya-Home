@@ -21,14 +21,7 @@ struct HomeView: View {
                 // Sections
                 ForEach(store.visibleSections) { section in
                     Section(section.title) {
-                        LazyVGrid(
-                            columns: [GridItem(
-                                .adaptive(minimum: PreviewCard.cardSize, maximum: PreviewCard.cardSize),
-                                spacing: 12
-                            )],
-                            alignment: .leading,
-                            spacing: 16
-                        ) {
+                        LazyVGrid(columns: .justifiedTriple, spacing: 16) {
                             ForEach(section.items.prefix(HomeFeature.previewLimit)) { item in
                                 Button {
                                     send(.itemTapped(id: item.id))
