@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
    LastUpgradeVersion = "1620"
-   version = "1.7">
+   version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES"
@@ -54,8 +54,8 @@
       <EnvironmentVariables>
          <EnvironmentVariable
             key = "MIYA_SERVER_URL"
-            value = "https://192.168.1.2:8000"
-            isEnabled = "NO">
+            value = "https://192.168.1.151:8000"
+            isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>
    </LaunchAction>
