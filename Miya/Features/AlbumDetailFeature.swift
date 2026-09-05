@@ -13,19 +13,28 @@ struct AlbumDetailFeature {
     @ObservableState
     struct State: Equatable, Identifiable {
         var album: Album
+        var isLoadingMore = false
         var id: Album.ID { album.id }
     }
 
     enum Action: ViewAction {
         enum View {
             case itemTapped(HomeSectionItem.ID)
+            case reachedEnd
         }
         enum Delegate: Equatable {
             case itemTapped(HomeSectionItem)
+            case didPaginate
         }
         case view(View)
         case delegate(Delegate)
+        case pageLoaded(Page<HomeSectionItem>)
+        case pageLoadFailed
     }
+
+    private enum CancelID { case paginate }
+
+    @Dependency(\.homeClient) var homeClient
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -33,6 +42,32 @@ struct AlbumDetailFeature {
             case let .view(.itemTapped(id)):
                 guard let item = state.album.items[id: id] else { return .none }
                 return .send(.delegate(.itemTapped(item)))
+
+            case .view(.reachedEnd):
+                guard !state.isLoadingMore,
+                      state.album.itemsHasMore,
+                      let cursor = state.album.itemsCursor
+                else { return .none }
+                state.isLoadingMore = true
+                return .run { [nodeID = state.album.nodeID] send in
+                    let page = try await homeClient.loadAlbumItems(albumNodeID: nodeID, after: cursor)
+                    await send(.pageLoaded(page))
+                } catch: { error, send in
+                    reportIssue(error, "HomeClient.loadAlbumItems failed")
+                    await send(.pageLoadFailed)
+                }
+                .cancellable(id: CancelID.paginate, cancelInFlight: true)
+
+            case let .pageLoaded(page):
+                state.isLoadingMore = false
+                state.album.items.append(contentsOf: page.elements)
+                state.album.itemsCursor = page.cursor
+                state.album.itemsHasMore = page.hasMore
+                return .send(.delegate(.didPaginate))
+
+            case .pageLoadFailed:
+                state.isLoadingMore = false
+                return .none
 
             case .delegate:
                 return .none
@@ -62,14 +97,24 @@ struct AlbumDetailView: View {
                     columns: [GridItem(.adaptive(minimum: Self.detailCardSize), spacing: 16)],
                     spacing: 16
                 ) {
-                    ForEach(store.album.items) { item in
+                    ForEach(Array(store.album.items.enumerated()), id: \.element.id) { index, item in
                         Button {
                             send(.itemTapped(item.id))
                         } label: {
                             PreviewCard(item: item, size: Self.detailCardSize)
                         }
                         .buttonStyle(.plain)
+                        .onAppear {
+                            if index >= store.album.items.count - 4 { send(.reachedEnd) }
+                        }
                     }
+                }
+
+                if store.album.itemsHasMore {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 24)
+                        .onAppear { send(.reachedEnd) }
                 }
             }
             .padding(16)
@@ -94,6 +139,8 @@ struct AlbumDetailView: View {
                 initialState: AlbumDetailFeature.State(album: Album.mocks[0])
             ) {
                 AlbumDetailFeature()
+            } withDependencies: {
+                $0.homeClient = .previewValue
             }
         )
     }
