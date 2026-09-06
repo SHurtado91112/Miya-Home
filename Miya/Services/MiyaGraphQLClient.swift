@@ -36,10 +36,11 @@ struct MiyaGraphQLClient {
     private static let mediaFields =
         "id slug title subtitle systemImage detail imageUrl author { id slug name } album { slug }"
     /// Album-card fields for a `SectionEntry`. `items(first: 3)` is a small cover
-    /// preview so the grid can fan a `StackedCoverCard` without loading the album.
+    /// preview (`imageUrl` is on the `MediaItem` interface) so the grid can fan a
+    /// `StackedCoverCard` without loading the album.
     private static let albumEntryFields = """
     id slug title subtitle systemImage imageUrl
-    items(first: 3) { edges { node { __typename ... on Song { imageUrl } ... on Photo { imageUrl } } } }
+    items(first: 3) { edges { node { imageUrl } } pageInfo { hasNextPage endCursor } }
     """
 
     /// A `SectionEntry` selection that includes album cards (sections, search).

@@ -62,6 +62,12 @@ struct GQLAlbumRef: Decodable {
     let slug: String
 }
 
+/// One node of an album card's `items(first: 3)` cover preview — only the image
+/// is selected, so this decodes it without `GQLSectionEntry`'s required fields.
+struct GQLCoverPreview: Decodable {
+    let imageUrl: String?
+}
+
 /// A `SectionEntry` union member (Song | Photo | Album) flattened into one
 /// decode target, discriminated by `__typename`. `id` is the Relay global id,
 /// `slug` the human id the app uses as its domain `id`. `author` / `album` are
@@ -77,7 +83,7 @@ struct GQLSectionEntry: Decodable {
     let imageUrl: String?
     let author: GQLAuthorRef?
     let album: GQLAlbumRef?
-    let items: GQLConnection<GQLSectionEntry>?
+    let items: GQLConnection<GQLCoverPreview>?
 }
 
 struct GQLAlbum: Decodable {
