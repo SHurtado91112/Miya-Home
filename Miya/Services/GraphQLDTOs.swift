@@ -62,10 +62,19 @@ struct GQLAlbumRef: Decodable {
     let slug: String
 }
 
-/// One node of an album card's `items(first: 3)` cover preview — only the image
-/// is selected, so this decodes it without `GQLSectionEntry`'s required fields.
-struct GQLCoverPreview: Decodable {
-    let imageUrl: String?
+/// An album card's `items(first: 3)` cover preview. Standalone (not
+/// `GQLConnection`/`GQLEdge`) because only `node { imageUrl }` is selected — no
+/// `cursor`, `pageInfo`, or `GQLSectionEntry` scalars.
+struct GQLCoverPreviewConnection: Decodable {
+    struct Edge: Decodable {
+        struct Node: Decodable { let imageUrl: String? }
+        let node: Node
+    }
+    let edges: [Edge]
+
+    var imageURLs: [URL] {
+        edges.compactMap { $0.node.imageUrl.flatMap(URL.init) }
+    }
 }
 
 /// A `SectionEntry` union member (Song | Photo | Album) flattened into one
@@ -83,7 +92,7 @@ struct GQLSectionEntry: Decodable {
     let imageUrl: String?
     let author: GQLAuthorRef?
     let album: GQLAlbumRef?
-    let items: GQLConnection<GQLCoverPreview>?
+    let items: GQLCoverPreviewConnection?
 }
 
 struct GQLAlbum: Decodable {
@@ -183,7 +192,7 @@ extension GQLSectionEntry {
             albumID: album?.slug,
             author: author.map { AuthorRef(id: $0.slug, name: $0.name, nodeID: $0.id) },
             albumNodeID: kind == .album ? id : nil,
-            coverPreviewURLs: items?.nodes.compactMap { $0.imageUrl.flatMap(URL.init) } ?? []
+            coverPreviewURLs: items?.imageURLs ?? []
         )
     }
 }

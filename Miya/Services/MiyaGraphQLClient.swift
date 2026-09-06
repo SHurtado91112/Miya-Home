@@ -40,7 +40,7 @@ struct MiyaGraphQLClient {
     /// `StackedCoverCard` without loading the album.
     private static let albumEntryFields = """
     id slug title subtitle systemImage imageUrl
-    items(first: 3) { edges { node { imageUrl } } pageInfo { hasNextPage endCursor } }
+    items(first: 3) { edges { node { imageUrl } } }
     """
 
     /// A `SectionEntry` selection that includes album cards (sections, search).
