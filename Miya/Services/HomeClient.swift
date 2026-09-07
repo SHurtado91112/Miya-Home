@@ -26,6 +26,9 @@ struct HomeClient: Sendable {
     /// Next page of one author's items, keyed on the author's Relay global id
     /// (or slug in the fixture fallback).
     var loadAuthorItems: @Sendable (_ authorID: String, _ after: String?) async throws -> Page<HomeSectionItem>
+    /// Every album one author is credited on (unpaginated), keyed on the
+    /// author's Relay global id (or slug in the fixture fallback).
+    var loadAuthorAlbums: @Sendable (_ authorID: String) async throws -> [Album]
 }
 
 extension HomeClient: DependencyKey {
@@ -115,6 +118,17 @@ extension HomeClient: DependencyKey {
         )
     }
 
+    /// JSON-fixture fallback for `loadAuthorAlbums`: bundled albums the author is
+    /// credited on, either at the album level or via any member item.
+    private static func localAuthorAlbums(authorID: String) throws -> [Album] {
+        func credits(_ author: AuthorRef?) -> Bool {
+            author?.id == authorID || author?.nodeID == authorID
+        }
+        return try bundledAlbums()
+            .filter { album in credits(album.author) || album.items.contains { credits($0.author) } }
+            .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+    }
+
     static let liveValue = HomeClient {
         if let serverURL {
             return try await MiyaGraphQLClient(baseURL: serverURL).loadSections()
@@ -155,6 +169,12 @@ extension HomeClient: DependencyKey {
                 .loadAuthorItems(authorNodeID: authorID, after: after)
         }
         return try localAuthorItems(authorID: authorID)
+    } loadAuthorAlbums: { authorID in
+        if let serverURL {
+            return try await MiyaGraphQLClient(baseURL: serverURL)
+                .loadAuthorAlbums(authorNodeID: authorID)
+        }
+        return try localAuthorAlbums(authorID: authorID)
     }
 
     static let previewValue = HomeClient {
@@ -194,6 +214,8 @@ extension HomeClient: DependencyKey {
         )
     } loadAuthorItems: { authorID, after in
         Album.mockAuthorItemPage(authorID: authorID, after: after)
+    } loadAuthorAlbums: { authorID in
+        Album.mocks.filter { $0.author?.id == authorID || $0.author?.nodeID == authorID }
     }
 }
 
@@ -352,6 +374,7 @@ extension Album {
             id: mockAlbumID,
             title: "In Rainbows",
             subtitle: "Radiohead",
+            author: AuthorRef(id: "radiohead", name: "Radiohead", nodeID: "node-radiohead"),
             systemImage: "square.stack",
             imageURL: URL(string: "https://picsum.photos/seed/miya-in-rainbows/600"),
             items: IdentifiedArray(uniqueElements: [3, 4].map { index in
@@ -375,6 +398,7 @@ extension Album {
             id: mockPhotoAlbumID,
             title: "Yesterday",
             subtitle: "2 photos",
+            author: AuthorRef(id: "steven-hurtado", name: "Steven Hurtado", nodeID: "node-steven-hurtado"),
             systemImage: "square.stack",
             imageURL: URL(string: "https://picsum.photos/seed/miya-yesterday-album/600"),
             items: IdentifiedArray(uniqueElements: [2, 3].map { index in

@@ -80,6 +80,7 @@ struct MiyaGraphQLClient {
             slug
             title
             subtitle
+            author { id slug name }
             systemImage
             imageUrl
             items(first: $first) {
@@ -127,6 +128,7 @@ struct MiyaGraphQLClient {
           slug
           title
           subtitle
+          author { id slug name }
           systemImage
           imageUrl
           items(first: $first) {
@@ -173,6 +175,34 @@ struct MiyaGraphQLClient {
               cursor
             }
             pageInfo { hasNextPage endCursor }
+          }
+        }
+      }
+    }
+    """
+
+    private static let authorAlbumsQuery = """
+    query AuthorAlbums($id: ID!, $first: Int!) {
+      node(id: $id) {
+        __typename
+        ... on Author {
+          albums {
+            id
+            slug
+            title
+            subtitle
+            author { id slug name }
+            systemImage
+            imageUrl
+            items(first: $first) {
+              edges {
+                node {
+    \(mediaEntryNodes)
+                }
+                cursor
+              }
+              pageInfo { hasNextPage endCursor }
+            }
           }
         }
       }
@@ -241,6 +271,19 @@ struct MiyaGraphQLClient {
             throw GraphQLRequestError(messages: ["node(id:) had no Author items for \(authorNodeID)"])
         }
         return items.toItemPage()
+    }
+
+    /// Every album one author is credited on, addressed by the author's Relay
+    /// global id. Unpaginated -- an author has few albums.
+    func loadAuthorAlbums(authorNodeID: String) async throws -> [Album] {
+        let data: AuthorAlbumsQueryData = try await execute(
+            Self.authorAlbumsQuery,
+            variables: NodeVariables(id: authorNodeID, first: Self.pageSize)
+        )
+        guard let albums = data.node?.albums else {
+            throw GraphQLRequestError(messages: ["node(id:) had no Author albums for \(authorNodeID)"])
+        }
+        return albums.map { $0.toAlbum() }
     }
 
     // MARK: - Transport

@@ -16,7 +16,9 @@ struct HomeView: View {
         NavigationStack(path: $store.scope(state: \.path, action: \.path)) {
             List {
                 // Header
-                Text(store.title).font(.largeTitle).listRowSeparator(.hidden)
+                Text(store.title).font(.largeTitle)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
 
                 // Sections (album members are folded server-side)
                 ForEach(store.sections) { section in
@@ -27,15 +29,15 @@ struct HomeView: View {
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 8, trailing: 0))
 
-                        LazyVGrid(columns: .justifiedTriple, spacing: 16) {
+                        SectionCardGrid(naturalCardSize: PreviewCard.cardSize) { cardSize in
                             ForEach(section.items.prefix(HomeFeature.previewLimit)) { item in
                                 Button {
                                     send(.itemTapped(id: item.id))
                                 } label: {
                                     if item.kind == .album {
-                                        StackedCoverCard(item: item)
+                                        StackedCoverCard(item: item, size: cardSize)
                                     } else {
-                                        PreviewCard(item: item)
+                                        PreviewCard(item: item, size: cardSize)
                                     }
                                 }
                                 .buttonStyle(.plain)
@@ -45,13 +47,15 @@ struct HomeView: View {
                                 Button {
                                     send(.moreTapped(sectionID: section.id))
                                 } label: {
-                                    MoreCard()
+                                    MoreCard(size: cardSize)
                                 }
                                 .buttonStyle(.plain)
                             }
                         }
+                        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 8, trailing: 0))
                     } header: {
                         Text(section.title)
+                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 8, trailing: 0))
                     }
                     .font(.headline).textCase(nil).listRowSeparator(.hidden)
                 }

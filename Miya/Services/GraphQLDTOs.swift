@@ -100,6 +100,7 @@ struct GQLAlbum: Decodable {
     let slug: String
     let title: String
     let subtitle: String
+    let author: GQLAuthorRef?
     let systemImage: String
     let imageUrl: String?
     let items: GQLConnection<GQLSectionEntry>
@@ -138,6 +139,7 @@ struct GQLAlbumNode: Decodable {
     let slug: String
     let title: String
     let subtitle: String
+    let author: GQLAuthorRef?
     let systemImage: String
     let imageUrl: String?
     let items: GQLConnection<GQLSectionEntry>
@@ -164,6 +166,15 @@ struct GQLAuthorItemsNode: Decodable {
 
 struct AuthorItemsQueryData: Decodable {
     let node: GQLAuthorItemsNode?
+}
+
+/// `node(id:)` narrowed to an Author's (unpaginated) album list.
+struct GQLAuthorAlbumsNode: Decodable {
+    let albums: [GQLAlbum]?
+}
+
+struct AuthorAlbumsQueryData: Decodable {
+    let node: GQLAuthorAlbumsNode?
 }
 
 // MARK: - DTO -> domain
@@ -242,6 +253,7 @@ extension GQLAlbum {
             id: slug,
             title: title,
             subtitle: subtitle,
+            author: author.map { AuthorRef(id: $0.slug, name: $0.name, nodeID: $0.id) },
             systemImage: systemImage,
             imageURL: imageUrl.flatMap(URL.init),
             items: IdentifiedArray(uniqueElements: items.nodes.map { $0.toHomeSectionItem() }),
@@ -258,6 +270,7 @@ extension GQLAlbumNode {
             id: slug,
             title: title,
             subtitle: subtitle,
+            author: author.map { AuthorRef(id: $0.slug, name: $0.name, nodeID: $0.id) },
             systemImage: systemImage,
             imageURL: imageUrl.flatMap(URL.init),
             items: IdentifiedArray(uniqueElements: items.nodes.map { $0.toHomeSectionItem() }),

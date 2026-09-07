@@ -97,15 +97,7 @@ struct HomeFeature {
                 return .none
 
             case let .albumFetched(album):
-                state.albums[id: album.id] = album
-                let alreadyOnPath = state.path.contains { pathState in
-                    guard case let .albumDetail(albumDetailState) = pathState else { return false }
-                    return albumDetailState.album.id == album.id
-                }
-                if !alreadyOnPath {
-                    state.path.append(.albumDetail(AlbumDetailFeature.State(album: album)))
-                }
-                return .none
+                return showAlbumDetail(album, state: &state)
 
             case let .view(.moreTapped(sectionID)):
                 return pushSectionDetail(sectionID, autoFocusSearch: false, state: &state)
@@ -122,20 +114,19 @@ struct HomeFeature {
                 return openItem(item, state: &state)
 
             case let .path(.element(id: _, action: .sectionDetail(.delegate(.authorTapped(ref))))):
-                let alreadyOnPath = state.path.contains { pathState in
-                    guard case let .authorDetail(authorState) = pathState else { return false }
-                    return authorState.author.id == ref.id
-                }
-                if !alreadyOnPath {
-                    state.path.append(.authorDetail(AuthorDetailFeature.State(author: ref)))
-                }
-                return .none
+                return showAuthorDetail(ref, state: &state)
+
+            case let .path(.element(id: _, action: .albumDetail(.delegate(.authorTapped(ref))))):
+                return showAuthorDetail(ref, state: &state)
 
             case let .path(.element(id: _, action: .albumDetail(.delegate(.itemTapped(item))))):
                 return openItem(item, state: &state)
 
             case let .path(.element(id: _, action: .authorDetail(.delegate(.itemTapped(item))))):
                 return openItem(item, state: &state)
+
+            case let .path(.element(id: _, action: .authorDetail(.delegate(.albumTapped(album))))):
+                return showAlbumDetail(album, state: &state)
 
             case .path(.element(id: _, action: .authorDetail(.delegate(.didPaginate)))):
                 // No author cache on HomeFeature.State to keep in step (unlike
@@ -164,6 +155,20 @@ struct HomeFeature {
                 }
                 return openAlbum(albumID, state: &state)
 
+            case let .preview(.presented(.song(.delegate(.authorTapped(ref))))):
+                if var songState = state.preview?.song {
+                    songState.detent = SongPreviewFeature.miniDetent
+                    state.preview = .song(songState)
+                }
+                return showAuthorDetail(ref, state: &state)
+
+            case let .preview(.presented(.photo(.delegate(.authorTapped(ref))))):
+                if var photoState = state.preview?.photo {
+                    photoState.detent = PhotoPreviewFeature.miniDetent
+                    state.preview = .photo(photoState)
+                }
+                return showAuthorDetail(ref, state: &state)
+
             case .path, .preview:
                 return .none
             }
@@ -186,12 +191,44 @@ struct HomeFeature {
         return .none
     }
 
+    /// Navigate to an author library screen. If that author is already on the
+    /// stack, pop back to it rather than pushing a duplicate (or dead-ending);
+    /// otherwise push a fresh screen. Shared by the section-search `AuthorRow`,
+    /// the album-detail subheader, and the media-preview author line.
+    private func showAuthorDetail(_ ref: AuthorRef, state: inout State) -> Effect<Action> {
+        if let existingID = state.path.ids.first(where: { id in
+            guard case let .authorDetail(authorState) = state.path[id: id] else { return false }
+            return authorState.author.id == ref.id
+        }) {
+            state.path.pop(to: existingID)
+        } else {
+            state.path.append(.authorDetail(AuthorDetailFeature.State(author: ref)))
+        }
+        return .none
+    }
+
+    /// Navigate to an album detail screen from an already-resolved `Album`. If
+    /// that album is already on the stack (e.g. it also turns up as a search
+    /// result), pop back to it rather than pushing a duplicate; otherwise push a
+    /// fresh screen. Also refreshes the album cache.
+    private func showAlbumDetail(_ album: Album, state: inout State) -> Effect<Action> {
+        state.albums[id: album.id] = album
+        if let existingID = state.path.ids.first(where: { id in
+            guard case let .albumDetail(albumState) = state.path[id: id] else { return false }
+            return albumState.album.id == album.id
+        }) {
+            state.path.pop(to: existingID)
+        } else {
+            state.path.append(.albumDetail(AlbumDetailFeature.State(album: album)))
+        }
+        return .none
+    }
+
     private func openItem(_ item: HomeSectionItem, state: inout State) -> Effect<Action> {
         switch item.kind {
         case .album:
             if let album = state.albums[id: item.id] {
-                state.path.append(.albumDetail(AlbumDetailFeature.State(album: album)))
-                return .none
+                return showAlbumDetail(album, state: &state)
             }
             // Not in the loaded `albums` page — resolve it by its Relay id.
             guard let nodeID = item.albumNodeID else { return .none }
@@ -207,13 +244,8 @@ struct HomeFeature {
     }
 
     private func openAlbum(_ albumID: Album.ID, state: inout State) -> Effect<Action> {
-        let albumAlreadyOnPath = state.path.contains { pathState in
-            guard case let .albumDetail(albumDetailState) = pathState else { return false }
-            return albumDetailState.album.id == albumID
-        }
-        guard !albumAlreadyOnPath, let album = state.albums[id: albumID] else { return .none }
-        state.path.append(.albumDetail(AlbumDetailFeature.State(album: album)))
-        return .none
+        guard let album = state.albums[id: albumID] else { return .none }
+        return showAlbumDetail(album, state: &state)
     }
 }
 
@@ -276,6 +308,10 @@ struct Album: Identifiable, Equatable, Codable, Sendable {
     var id: String
     var title: String
     var subtitle: String
+    /// The album's credited author (album artist / photographer). Populated from
+    /// the server's `author { id slug name }`; present in the JSON fixtures as
+    /// `{ "id", "name" }`. Drives the tappable author subheader on album detail.
+    var author: AuthorRef? = nil
     var systemImage: String
     var imageURL: URL?
     var items: IdentifiedArrayOf<HomeSectionItem>
@@ -287,6 +323,6 @@ struct Album: Identifiable, Equatable, Codable, Sendable {
     var itemsHasMore: Bool = false
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, subtitle, systemImage, imageURL, items
+        case id, title, subtitle, author, systemImage, imageURL, items
     }
 }

@@ -28,9 +28,11 @@ struct SongPreviewFeature {
             case playPauseTapped
             case expandTapped
             case viewAlbumTapped
+            case authorTapped(AuthorRef)
         }
         enum Delegate: Equatable {
             case viewAlbumTapped(albumID: Album.ID)
+            case authorTapped(AuthorRef)
         }
         case view(View)
         case binding(BindingAction<State>)
@@ -52,6 +54,9 @@ struct SongPreviewFeature {
             case .view(.viewAlbumTapped):
                 guard let albumID = state.item.albumID else { return .none }
                 return .send(.delegate(.viewAlbumTapped(albumID: albumID)))
+
+            case let .view(.authorTapped(ref)):
+                return .send(.delegate(.authorTapped(ref)))
 
             case .binding, .delegate:
                 return .none
@@ -93,9 +98,26 @@ struct SongPreviewView: View {
                 Text(store.item.title)
                     .font(.title)
                     .multilineTextAlignment(.center)
-                Text(store.item.subtitle)
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
+
+                if let author = store.item.author {
+                    Button {
+                        send(.authorTapped(author))
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(author.name)
+                            Image(systemName: "chevron.forward").font(.caption)
+                        }
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityHint("Shows all items by \(author.name)")
+                } else {
+                    Text(store.item.subtitle)
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                }
 
                 if store.item.albumID != nil {
                     Button("View Album") { send(.viewAlbumTapped) }

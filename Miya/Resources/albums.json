@@ -3,6 +3,10 @@
     "id": "in-rainbows",
     "title": "In Rainbows",
     "subtitle": "Radiohead",
+    "author": {
+      "id": "radiohead",
+      "name": "Radiohead"
+    },
     "systemImage": "square.stack",
     "imageURL": "https://picsum.photos/seed/miya-in-rainbows-album/600",
     "items": [
@@ -68,6 +72,10 @@
     "id": "yesterday-morning",
     "title": "Yesterday Morning",
     "subtitle": "4 photos",
+    "author": {
+      "id": "steven-hurtado",
+      "name": "Steven Hurtado"
+    },
     "systemImage": "square.stack",
     "imageURL": "https://picsum.photos/seed/miya-yesterday-morning-album/800/600",
     "items": [

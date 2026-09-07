@@ -28,10 +28,12 @@ struct PhotoPreviewFeature {
             case closeTapped
             case toggleMetadataTapped
             case viewAlbumTapped
+            case authorTapped(AuthorRef)
             case expandTapped
         }
         enum Delegate: Equatable {
             case viewAlbumTapped(albumID: Album.ID)
+            case authorTapped(AuthorRef)
         }
         case view(View)
         case binding(BindingAction<State>)
@@ -54,6 +56,9 @@ struct PhotoPreviewFeature {
             case .view(.viewAlbumTapped):
                 guard let albumID = state.item.albumID else { return .none }
                 return .send(.delegate(.viewAlbumTapped(albumID: albumID)))
+
+            case let .view(.authorTapped(ref)):
+                return .send(.delegate(.authorTapped(ref)))
 
             case .view(.expandTapped):
                 state.detent = .large
@@ -233,6 +238,12 @@ struct PhotoPreviewView: View {
             Text(store.item.detail)
                 .font(.body)
                 .foregroundStyle(.secondary)
+            if let author = store.item.author {
+                Button("By \(author.name)") { send(.authorTapped(author)) }
+                    .font(.body)
+                    .padding(.top, 4)
+                    .accessibilityHint("Shows all items by \(author.name)")
+            }
             if store.item.albumID != nil {
                 Button("View Album") { send(.viewAlbumTapped) }
                     .font(.body)

@@ -38,9 +38,7 @@ struct SearchField: View {
                 .accessibilityLabel("Clear search")
             }
         }
-        .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 10))
     }
 }
 

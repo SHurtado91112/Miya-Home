@@ -23,10 +23,9 @@ struct SearchBarButton: View {
             }
             .font(.body)
             .foregroundStyle(.secondary)
-            .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity)
-            .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 10))
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)

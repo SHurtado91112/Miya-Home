@@ -190,15 +190,15 @@ struct SectionDetailView: View {
                         .padding(.vertical, 24)
                 }
 
-                LazyVGrid(columns: .justifiedTriple, spacing: 16) {
+                SectionCardGrid(naturalCardSize: Self.detailCardSize) { cardSize in
                     ForEach(Array(store.displayedItems.enumerated()), id: \.element.id) { index, item in
                         Button {
                             send(.itemTapped(item.id))
                         } label: {
                             if item.kind == .album {
-                                StackedCoverCard(item: item, size: Self.detailCardSize)
+                                StackedCoverCard(item: item, size: cardSize)
                             } else {
-                                PreviewCard(item: item, size: Self.detailCardSize)
+                                PreviewCard(item: item, size: cardSize)
                             }
                         }
                         .buttonStyle(.plain)

@@ -20,10 +20,12 @@ struct AlbumDetailFeature {
     enum Action: ViewAction {
         enum View {
             case itemTapped(HomeSectionItem.ID)
+            case authorTapped(AuthorRef)
             case reachedEnd
         }
         enum Delegate: Equatable {
             case itemTapped(HomeSectionItem)
+            case authorTapped(AuthorRef)
             case didPaginate
         }
         case view(View)
@@ -42,6 +44,9 @@ struct AlbumDetailFeature {
             case let .view(.itemTapped(id)):
                 guard let item = state.album.items[id: id] else { return .none }
                 return .send(.delegate(.itemTapped(item)))
+
+            case let .view(.authorTapped(ref)):
+                return .send(.delegate(.authorTapped(ref)))
 
             case .view(.reachedEnd):
                 guard !state.isLoadingMore,
@@ -91,14 +96,36 @@ struct AlbumDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 // Header — matches HomeView's in-list large title
-                Text(store.album.title).font(.largeTitle)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(store.album.title).font(.largeTitle)
 
-                LazyVGrid(columns: .justifiedTriple, spacing: 16) {
+                    if let author = store.album.author {
+                        Button {
+                            send(.authorTapped(author))
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(author.name)
+                                Image(systemName: "chevron.forward").font(.caption)
+                            }
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityHint("Shows all items by \(author.name)")
+                    } else {
+                        Text(store.album.subtitle)
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                SectionCardGrid(naturalCardSize: Self.detailCardSize) { cardSize in
                     ForEach(Array(store.album.items.enumerated()), id: \.element.id) { index, item in
                         Button {
                             send(.itemTapped(item.id))
                         } label: {
-                            PreviewCard(item: item, size: Self.detailCardSize)
+                            PreviewCard(item: item, size: cardSize)
                         }
                         .buttonStyle(.plain)
                         .onAppear {
