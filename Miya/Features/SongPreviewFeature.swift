@@ -90,7 +90,7 @@ struct SongPreviewView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 24)
 
-            artwork(size: 320, cornerRadius: 16)
+            artwork(url: store.item.imageURL, size: 320, cornerRadius: 16)
                 .shadow(color: .black.opacity(0.25), radius: 24, y: 12)
                 .padding(.horizontal, 32)
 
@@ -142,7 +142,7 @@ struct SongPreviewView: View {
 
     private var miniPlayer: some View {
         HStack(spacing: 12) {
-            artwork(size: 44, cornerRadius: 6)
+            artwork(url: store.item.smallImageURL, size: 44, cornerRadius: 6)
 
             Text(store.item.title)
                 .font(.body)
@@ -164,10 +164,10 @@ struct SongPreviewView: View {
         .onTapGesture { send(.expandTapped) }
     }
 
-    private func artwork(size: CGFloat, cornerRadius: CGFloat) -> some View {
+    private func artwork(url: URL?, size: CGFloat, cornerRadius: CGFloat) -> some View {
         ZStack {
             Color(.systemGray5)
-            if let url = store.item.imageURL {
+            if let url {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .empty:

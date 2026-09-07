@@ -31,7 +31,7 @@ extension PreviewCard {
         self.init(
             title: item.title,
             systemImage: item.systemImage,
-            imageURL: item.imageURL,
+            imageURL: item.smallImageURL,
             size: size
         )
     }

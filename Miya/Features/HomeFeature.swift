@@ -279,6 +279,10 @@ struct HomeSectionItem: Identifiable, Equatable, Codable, Sendable {
     var systemImage: String
     var detail: String
     var imageURL: URL?
+    /// A small (longest edge ~512) derivative of `imageURL`, served from
+    /// `/media/{id}/thumb`. Server-only; `nil` in the JSON fixtures. Use it for
+    /// grid cards, cover fans, and mini bars; `imageURL` for full-screen art.
+    var thumbnailURL: URL? = nil
     var albumID: Album.ID?
     /// The item's credited author (song artist / photographer). Populated from
     /// the server's `author { id slug name }`; may be present in the JSON
@@ -290,8 +294,12 @@ struct HomeSectionItem: Identifiable, Equatable, Codable, Sendable {
     var albumNodeID: String? = nil
     /// For `kind == .album`: a few member cover URLs (`items(first: 3)`) so the
     /// grid can render the fanned `StackedCoverCard` without loading the full
-    /// album. Server-only.
+    /// album. Server-provided thumbnails when available; server-only.
     var coverPreviewURLs: [URL] = []
+
+    /// Thumbnail if the server sent one, else the full image — the URL to use
+    /// wherever the item renders small (grid card, cover fan, mini bar).
+    var smallImageURL: URL? { thumbnailURL ?? imageURL }
 
     private enum CodingKeys: String, CodingKey {
         case id, kind, title, subtitle, systemImage, detail, imageURL, albumID, author
@@ -314,6 +322,9 @@ struct Album: Identifiable, Equatable, Codable, Sendable {
     var author: AuthorRef? = nil
     var systemImage: String
     var imageURL: URL?
+    /// A small derivative of `imageURL` (see `HomeSectionItem.thumbnailURL`).
+    /// Server-only; `nil` in the JSON fixtures.
+    var thumbnailURL: URL? = nil
     var items: IdentifiedArrayOf<HomeSectionItem>
     /// Relay global id, used to page this album's items via `node(id:)`. These
     /// three are server-only; the `CodingKeys` below omit them so the bundled
@@ -321,6 +332,9 @@ struct Album: Identifiable, Equatable, Codable, Sendable {
     var nodeID: String = ""
     var itemsCursor: String? = nil
     var itemsHasMore: Bool = false
+
+    /// Thumbnail if the server sent one, else the full cover.
+    var smallImageURL: URL? { thumbnailURL ?? imageURL }
 
     private enum CodingKeys: String, CodingKey {
         case id, title, subtitle, author, systemImage, imageURL, items

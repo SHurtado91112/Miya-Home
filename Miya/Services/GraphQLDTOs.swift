@@ -63,17 +63,21 @@ struct GQLAlbumRef: Decodable {
 }
 
 /// An album card's `items(first: 3)` cover preview. Standalone (not
-/// `GQLConnection`/`GQLEdge`) because only `node { imageUrl }` is selected — no
-/// `cursor`, `pageInfo`, or `GQLSectionEntry` scalars.
+/// `GQLConnection`/`GQLEdge`) because only `node { imageUrl thumbnailUrl }` is
+/// selected — no `cursor`, `pageInfo`, or `GQLSectionEntry` scalars.
 struct GQLCoverPreviewConnection: Decodable {
     struct Edge: Decodable {
-        struct Node: Decodable { let imageUrl: String? }
+        struct Node: Decodable {
+            let imageUrl: String?
+            let thumbnailUrl: String?
+        }
         let node: Node
     }
     let edges: [Edge]
 
-    var imageURLs: [URL] {
-        edges.compactMap { $0.node.imageUrl.flatMap(URL.init) }
+    /// Thumbnail per node when present, else its full image — the fan renders small.
+    var thumbnailURLs: [URL] {
+        edges.compactMap { ($0.node.thumbnailUrl ?? $0.node.imageUrl).flatMap(URL.init) }
     }
 }
 
@@ -90,6 +94,7 @@ struct GQLSectionEntry: Decodable {
     let systemImage: String
     let detail: String?
     let imageUrl: String?
+    let thumbnailUrl: String?
     let author: GQLAuthorRef?
     let album: GQLAlbumRef?
     let items: GQLCoverPreviewConnection?
@@ -103,6 +108,7 @@ struct GQLAlbum: Decodable {
     let author: GQLAuthorRef?
     let systemImage: String
     let imageUrl: String?
+    let thumbnailUrl: String?
     let items: GQLConnection<GQLSectionEntry>
 }
 
@@ -142,6 +148,7 @@ struct GQLAlbumNode: Decodable {
     let author: GQLAuthorRef?
     let systemImage: String
     let imageUrl: String?
+    let thumbnailUrl: String?
     let items: GQLConnection<GQLSectionEntry>
 }
 
@@ -200,10 +207,11 @@ extension GQLSectionEntry {
             systemImage: systemImage,
             detail: detail ?? "",
             imageURL: imageUrl.flatMap(URL.init),
+            thumbnailURL: thumbnailUrl.flatMap(URL.init),
             albumID: album?.slug,
             author: author.map { AuthorRef(id: $0.slug, name: $0.name, nodeID: $0.id) },
             albumNodeID: kind == .album ? id : nil,
-            coverPreviewURLs: items?.imageURLs ?? []
+            coverPreviewURLs: items?.thumbnailURLs ?? []
         )
     }
 }
@@ -256,6 +264,7 @@ extension GQLAlbum {
             author: author.map { AuthorRef(id: $0.slug, name: $0.name, nodeID: $0.id) },
             systemImage: systemImage,
             imageURL: imageUrl.flatMap(URL.init),
+            thumbnailURL: thumbnailUrl.flatMap(URL.init),
             items: IdentifiedArray(uniqueElements: items.nodes.map { $0.toHomeSectionItem() }),
             nodeID: id,
             itemsCursor: items.pageInfo.endCursor,
@@ -273,6 +282,7 @@ extension GQLAlbumNode {
             author: author.map { AuthorRef(id: $0.slug, name: $0.name, nodeID: $0.id) },
             systemImage: systemImage,
             imageURL: imageUrl.flatMap(URL.init),
+            thumbnailURL: thumbnailUrl.flatMap(URL.init),
             items: IdentifiedArray(uniqueElements: items.nodes.map { $0.toHomeSectionItem() }),
             nodeID: id,
             itemsCursor: items.pageInfo.endCursor,

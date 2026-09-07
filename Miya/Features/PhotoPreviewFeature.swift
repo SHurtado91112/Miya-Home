@@ -180,7 +180,7 @@ struct PhotoPreviewView: View {
     private func thumbnail(size: CGFloat, cornerRadius: CGFloat) -> some View {
         ZStack {
             Color(.systemGray5)
-            if let url = store.item.imageURL {
+            if let url = store.item.smallImageURL {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .empty:

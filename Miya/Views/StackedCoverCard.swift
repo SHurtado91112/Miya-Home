@@ -93,7 +93,7 @@ extension StackedCoverCard {
     /// previews (`coverPreviewURLs`, server-provided `items(first: 3)`) behind
     /// the album's own cover. No dependency on a loaded `Album`.
     init(item: HomeSectionItem, size: CGFloat = PreviewCard.cardSize) {
-        let albumCover = Cover(id: 99, systemImage: item.systemImage, imageURL: item.imageURL)
+        let albumCover = Cover(id: 99, systemImage: item.systemImage, imageURL: item.smallImageURL)
         let members = item.coverPreviewURLs.prefix(2).enumerated().map { index, url in
             Cover(id: index, systemImage: item.systemImage, imageURL: url)
         }
@@ -106,7 +106,7 @@ extension StackedCoverCard {
     }
 
     init(album: Album, size: CGFloat = PreviewCard.cardSize) {
-        let albumCover = Cover(id: 99, systemImage: album.systemImage, imageURL: album.imageURL)
+        let albumCover = Cover(id: 99, systemImage: album.systemImage, imageURL: album.smallImageURL)
         let members = album.items
         let covers: [Cover]
         switch members.count {
@@ -128,7 +128,7 @@ extension StackedCoverCard {
     private static func cover(_ items: IdentifiedArrayOf<HomeSectionItem>, _ i: Int) -> Cover? {
         guard items.indices.contains(i) else { return nil }
         let item = items[i]
-        return Cover(id: i, systemImage: item.systemImage, imageURL: item.imageURL)
+        return Cover(id: i, systemImage: item.systemImage, imageURL: item.smallImageURL)
     }
 }
 

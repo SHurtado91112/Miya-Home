@@ -34,13 +34,13 @@ struct MiyaGraphQLClient {
     /// are the sub-objects the search filter and the "view album" affordance
     /// need; `GQLSectionEntry` decodes them as optionals.
     private static let mediaFields =
-        "id slug title subtitle systemImage detail imageUrl author { id slug name } album { slug }"
+        "id slug title subtitle systemImage detail imageUrl thumbnailUrl author { id slug name } album { slug }"
     /// Album-card fields for a `SectionEntry`. `items(first: 3)` is a small cover
-    /// preview (`imageUrl` is on the `MediaItem` interface) so the grid can fan a
-    /// `StackedCoverCard` without loading the album.
+    /// preview (`imageUrl` / `thumbnailUrl` are on the `MediaItem` interface) so
+    /// the grid can fan a `StackedCoverCard` without loading the album.
     private static let albumEntryFields = """
-    id slug title subtitle systemImage imageUrl
-    items(first: 3) { edges { node { imageUrl } } }
+    id slug title subtitle systemImage imageUrl thumbnailUrl
+    items(first: 3) { edges { node { imageUrl thumbnailUrl } } }
     """
 
     /// A `SectionEntry` selection that includes album cards (sections, search).
@@ -83,6 +83,7 @@ struct MiyaGraphQLClient {
             author { id slug name }
             systemImage
             imageUrl
+            thumbnailUrl
             items(first: $first) {
               edges {
                 node {
@@ -131,6 +132,7 @@ struct MiyaGraphQLClient {
           author { id slug name }
           systemImage
           imageUrl
+          thumbnailUrl
           items(first: $first) {
             edges {
               node {
@@ -194,6 +196,7 @@ struct MiyaGraphQLClient {
             author { id slug name }
             systemImage
             imageUrl
+            thumbnailUrl
             items(first: $first) {
               edges {
                 node {
