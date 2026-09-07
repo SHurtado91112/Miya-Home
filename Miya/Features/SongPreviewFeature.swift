@@ -27,12 +27,15 @@ struct SongPreviewFeature {
         enum View {
             case playPauseTapped
             case expandTapped
+            case closeTapped
             case viewAlbumTapped
             case authorTapped(AuthorRef)
         }
         enum Delegate: Equatable {
             case viewAlbumTapped(albumID: Album.ID)
             case authorTapped(AuthorRef)
+            /// The user dismissed this preview from its mini bar.
+            case closed
         }
         case view(View)
         case binding(BindingAction<State>)
@@ -50,6 +53,9 @@ struct SongPreviewFeature {
             case .view(.expandTapped):
                 state.detent = .large
                 return .none
+
+            case .view(.closeTapped):
+                return .send(.delegate(.closed))
 
             case .view(.viewAlbumTapped):
                 guard let albumID = state.item.albumID else { return .none }
@@ -140,29 +146,7 @@ struct SongPreviewView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private var miniPlayer: some View {
-        HStack(spacing: 12) {
-            artwork(url: store.item.smallImageURL, size: 44, cornerRadius: 6)
-
-            Text(store.item.title)
-                .font(.body)
-                .lineLimit(1)
-
-            Spacer()
-
-            Button { send(.playPauseTapped) } label: {
-                Image(systemName: store.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.title3)
-                    .foregroundStyle(.primary)
-                    .frame(width: 32, height: 32)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 16)
-        .frame(maxWidth: .infinity)
-        .contentShape(Rectangle())
-        .onTapGesture { send(.expandTapped) }
-    }
+    private var miniPlayer: some View { SongMiniBar(store: store) }
 
     private func artwork(url: URL?, size: CGFloat, cornerRadius: CGFloat) -> some View {
         ZStack {
@@ -227,6 +211,54 @@ struct SongPreviewView: View {
                 .font(.title)
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+/// The collapsed song bar — artwork, title, play/pause, close. Used inside the
+/// preview sheet and, when a photo preview is also open, as a docked bar in
+/// `MediaPreviewView`.
+@ViewAction(for: SongPreviewFeature.self)
+struct SongMiniBar: View {
+    let store: StoreOf<SongPreviewFeature>
+
+    var body: some View {
+        HStack(spacing: 12) {
+            CoverTile(
+                systemImage: store.item.systemImage,
+                imageURL: store.item.smallImageURL,
+                size: 44,
+                cornerRadius: 6
+            )
+
+            Text(store.item.title)
+                .font(.body)
+                .lineLimit(1)
+
+            Spacer(minLength: 8)
+
+            Button { send(.playPauseTapped) } label: {
+                Image(systemName: store.isPlaying ? "pause.fill" : "play.fill")
+                    .font(.title3)
+                    .foregroundStyle(.primary)
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.plain)
+
+            Button { send(.closeTapped) } label: {
+                Image(systemName: "xmark")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close song preview")
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, minHeight: 56)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .contentShape(Rectangle())
+        .onTapGesture { send(.expandTapped) }
     }
 }
 

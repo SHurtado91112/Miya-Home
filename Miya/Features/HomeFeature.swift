@@ -142,31 +142,19 @@ struct HomeFeature {
                 return .none
 
             case let .preview(.presented(.song(.delegate(.viewAlbumTapped(albumID))))):
-                if var songState = state.preview?.song {
-                    songState.detent = SongPreviewFeature.miniDetent
-                    state.preview = .song(songState)
-                }
+                state.preview?.minimize()
                 return openAlbum(albumID, state: &state)
 
             case let .preview(.presented(.photo(.delegate(.viewAlbumTapped(albumID))))):
-                if var photoState = state.preview?.photo {
-                    photoState.detent = PhotoPreviewFeature.miniDetent
-                    state.preview = .photo(photoState)
-                }
+                state.preview?.minimize()
                 return openAlbum(albumID, state: &state)
 
             case let .preview(.presented(.song(.delegate(.authorTapped(ref))))):
-                if var songState = state.preview?.song {
-                    songState.detent = SongPreviewFeature.miniDetent
-                    state.preview = .song(songState)
-                }
+                state.preview?.minimize()
                 return showAuthorDetail(ref, state: &state)
 
             case let .preview(.presented(.photo(.delegate(.authorTapped(ref))))):
-                if var photoState = state.preview?.photo {
-                    photoState.detent = PhotoPreviewFeature.miniDetent
-                    state.preview = .photo(photoState)
-                }
+                state.preview?.minimize()
                 return showAuthorDetail(ref, state: &state)
 
             case .path, .preview:
@@ -174,7 +162,7 @@ struct HomeFeature {
             }
         }
         .forEach(\.path, action: \.path)
-        .ifLet(\.$preview, action: \.preview)
+        .ifLet(\.$preview, action: \.preview) { MediaPreview() }
     }
 
     private func pushSectionDetail(
@@ -238,7 +226,9 @@ struct HomeFeature {
                 reportIssue(error, "HomeClient.loadAlbumNode failed")
             }
         case .song, .photo:
-            state.preview = MediaPreview.state(for: item)
+            // Fold into any existing preview so a pending song/photo of the
+            // other kind stays alive.
+            state.preview = MediaPreview.opening(item, into: state.preview)
             return .none
         }
     }

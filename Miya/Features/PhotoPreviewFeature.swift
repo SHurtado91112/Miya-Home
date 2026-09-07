@@ -34,20 +34,20 @@ struct PhotoPreviewFeature {
         enum Delegate: Equatable {
             case viewAlbumTapped(albumID: Album.ID)
             case authorTapped(AuthorRef)
+            /// The user dismissed this preview from its mini bar or the close button.
+            case closed
         }
         case view(View)
         case binding(BindingAction<State>)
         case delegate(Delegate)
     }
 
-    @Dependency(\.dismiss) var dismiss
-
     var body: some ReducerOf<Self> {
         BindingReducer()
         Reduce { state, action in
             switch action {
             case .view(.closeTapped):
-                return .run { _ in await dismiss() }
+                return .send(.delegate(.closed))
 
             case .view(.toggleMetadataTapped):
                 state.showsMetadata.toggle()
@@ -120,35 +120,7 @@ struct PhotoPreviewView: View {
         .animation(.snappy, value: store.showsMetadata)
     }
 
-    private var miniPhoto: some View {
-        HStack(spacing: 12) {
-            thumbnail(size: 44, cornerRadius: 6)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(store.item.title)
-                    .font(.body)
-                    .lineLimit(1)
-                Text(store.item.subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
-            Button { send(.closeTapped) } label: {
-                Image(systemName: "xmark")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 32, height: 32)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 16)
-        .frame(maxWidth: .infinity)
-        .contentShape(Rectangle())
-        .onTapGesture { send(.expandTapped) }
-    }
+    private var miniPhoto: some View { PhotoMiniBar(store: store) }
 
     private var image: some View {
         ZStack {
@@ -177,35 +149,6 @@ struct PhotoPreviewView: View {
             .foregroundStyle(.white.opacity(0.6))
     }
 
-    private func thumbnail(size: CGFloat, cornerRadius: CGFloat) -> some View {
-        ZStack {
-            Color(.systemGray5)
-            if let url = store.item.smallImageURL {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        ProgressView()
-                    case let .success(image):
-                        image.resizable().scaledToFill()
-                    case .failure:
-                        thumbnailGlyph(size: size)
-                    @unknown default:
-                        thumbnailGlyph(size: size)
-                    }
-                }
-            } else {
-                thumbnailGlyph(size: size)
-            }
-        }
-        .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-    }
-
-    private func thumbnailGlyph(size: CGFloat) -> some View {
-        Image(systemName: store.item.systemImage)
-            .font(.system(size: size * 0.3))
-            .foregroundStyle(.secondary)
-    }
 
     private var chrome: some View {
         VStack {
@@ -290,6 +233,52 @@ struct PhotoPreviewView: View {
         } else {
             scale = Self.doubleTapScale
         }
+    }
+}
+
+/// The collapsed photo bar — thumbnail, title/subtitle, close. Used inside the
+/// preview sheet and, when a song preview is also open, as a docked bar in
+/// `MediaPreviewView`.
+@ViewAction(for: PhotoPreviewFeature.self)
+struct PhotoMiniBar: View {
+    let store: StoreOf<PhotoPreviewFeature>
+
+    var body: some View {
+        HStack(spacing: 12) {
+            CoverTile(
+                systemImage: store.item.systemImage,
+                imageURL: store.item.smallImageURL,
+                size: 44,
+                cornerRadius: 6
+            )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(store.item.title)
+                    .font(.body)
+                    .lineLimit(1)
+                Text(store.item.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+
+            Button { send(.closeTapped) } label: {
+                Image(systemName: "xmark")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close photo preview")
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, minHeight: 56)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .contentShape(Rectangle())
+        .onTapGesture { send(.expandTapped) }
     }
 }
 

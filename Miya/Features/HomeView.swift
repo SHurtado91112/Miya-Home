@@ -85,16 +85,36 @@ struct HomeView: View {
             }
         }
         .tint(.primary)
-        .sheet(
-            item: $store.scope(state: \.preview, action: \.preview)
-        ) { store in
-            switch store.case {
-            case let .song(store):
-                SongPreviewView(store: store)
-            case let .photo(store):
-                PhotoPreviewView(store: store)
+        .overlay(alignment: .bottom) {
+            if let previewStore = store.scope(state: \.preview, action: \.preview),
+               previewStore.expandedKind == nil {
+                MediaPreviewBarsView(store: previewStore)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 8)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .animation(.snappy, value: store.preview?.dockedKinds)
+        .sheet(item: expandedPreview) { previewStore in
+            MediaPreviewView(store: previewStore)
+        }
+    }
+
+    /// The preview store, but only while a preview is expanded full screen — so
+    /// the sheet presents for the expanded view only and the mini bars stay a
+    /// plain overlay.
+    private var expandedPreview: Binding<StoreOf<MediaPreview>?> {
+        Binding(
+            get: {
+                guard let previewStore = store.scope(state: \.preview, action: \.preview),
+                      previewStore.expandedKind != nil
+                else { return nil }
+                return previewStore
+            },
+            set: { newValue in
+                if newValue == nil { store.send(.preview(.dismiss)) }
+            }
+        )
     }
 }
 
