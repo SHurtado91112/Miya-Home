@@ -86,7 +86,7 @@ struct HomeView: View {
         }
         .tint(.primary)
         .overlay(alignment: .bottom) {
-            if let previewStore = store.scope(state: \.preview, action: \.preview),
+            if let previewStore = store.scope(state: \.preview, action: \.preview.presented),
                previewStore.expandedKind == nil {
                 MediaPreviewBarsView(store: previewStore)
                     .padding(.horizontal, 12)
@@ -106,14 +106,18 @@ struct HomeView: View {
     private var expandedPreview: Binding<StoreOf<MediaPreview>?> {
         Binding(
             get: {
-                guard let previewStore = store.scope(state: \.preview, action: \.preview),
+                guard let previewStore = store.scope(state: \.preview, action: \.preview.presented),
                       previewStore.expandedKind != nil
                 else { return nil }
                 return previewStore
             },
-            set: { newValue in
-                if newValue == nil { store.send(.preview(.dismiss)) }
-            }
+            // No-op: the sheet is a pure projection of `expandedKind`. Dragging
+            // the sheet down to its mini detent flips `expandedKind` to nil,
+            // which dismisses the sheet on its own while the preview lives on as
+            // a docked bar. Tearing down `state.preview` here would wrongly kill
+            // the minimized preview on every collapse. A genuine close runs
+            // through the mini bar's `.closed` delegate instead.
+            set: { _ in }
         )
     }
 }

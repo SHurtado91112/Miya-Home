@@ -15,7 +15,7 @@ import Foundation
 ///
 /// Backed by `IdentifiedArrayOf` so that appending a page de-duplicates by id
 /// if a server cursor happens to overlap the previous page's tail.
-struct Page<Element: Identifiable & Equatable & Sendable>: Equatable, Sendable {
+struct Page<Element: Identifiable & Equatable & Sendable>: Equatable, Sendable where Element.ID: Sendable {
     var elements: IdentifiedArrayOf<Element>
     var cursor: String?
     var hasMore: Bool

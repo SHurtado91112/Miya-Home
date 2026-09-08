@@ -54,7 +54,7 @@
       <EnvironmentVariables>
          <EnvironmentVariable
             key = "MIYA_SERVER_URL"
-            value = "https://192.168.1.182:8000"
+            value = "https://192.168.1.183:8000"
             isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>
