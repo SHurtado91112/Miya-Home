@@ -105,11 +105,22 @@ struct MediaPreview {
 extension MediaPreview {
     /// Fold a freshly tapped item into the preview state, keeping any preview of
     /// the *other* kind alive. Returns `existing` unchanged for a `.album` item.
-    static func opening(_ item: HomeSectionItem, into existing: State?) -> State? {
+    ///
+    /// `siblings` is the list the item was tapped in (an album's tracks, a
+    /// section's items, a set of search results); its songs become the play
+    /// queue, so ⏮ / ⏭ and auto-advance walk exactly what the user was looking at.
+    static func opening(
+        _ item: HomeSectionItem,
+        siblings: IdentifiedArrayOf<HomeSectionItem> = [],
+        into existing: State?
+    ) -> State? {
         var state = existing ?? State()
         switch item.kind {
         case .song:
-            state.song = SongPreviewFeature.State(item: item)   // detent == .large
+            state.song = SongPreviewFeature.State(   // detent == .large
+                item: item,
+                queue: queue(for: item, in: siblings)
+            )
             state.photo?.detent = PhotoPreviewFeature.miniDetent
         case .photo:
             state.photo = PhotoPreviewFeature.State(item: item)
@@ -118,6 +129,16 @@ extension MediaPreview {
             return existing
         }
         return state
+    }
+
+    /// The songs of `siblings`, in display order. Falls back to the item alone
+    /// when it isn't in that list — a stale grid, or a tap with no list context.
+    private static func queue(
+        for item: HomeSectionItem,
+        in siblings: IdentifiedArrayOf<HomeSectionItem>
+    ) -> IdentifiedArrayOf<HomeSectionItem> {
+        let songs = IdentifiedArray(uniqueElements: siblings.filter { $0.kind == .song })
+        return songs[id: item.id] == nil ? [item] : songs
     }
 }
 

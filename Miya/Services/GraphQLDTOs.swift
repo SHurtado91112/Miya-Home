@@ -98,6 +98,10 @@ struct GQLSectionEntry: Decodable {
     let author: GQLAuthorRef?
     let album: GQLAlbumRef?
     let items: GQLCoverPreviewConnection?
+    /// Song-only: the `/media/{id}` stream URL and the track length. Absent on
+    /// `Photo` / `Album` entries, and null on a song with no ingested audio file.
+    let audioUrl: String?
+    let durationSeconds: Int?
 }
 
 struct GQLAlbum: Decodable {
@@ -211,7 +215,9 @@ extension GQLSectionEntry {
             albumID: album?.slug,
             author: author.map { AuthorRef(id: $0.slug, name: $0.name, nodeID: $0.id) },
             albumNodeID: kind == .album ? id : nil,
-            coverPreviewURLs: items?.thumbnailURLs ?? []
+            coverPreviewURLs: items?.thumbnailURLs ?? [],
+            audioURL: audioUrl.flatMap(URL.init),
+            duration: durationSeconds.map(TimeInterval.init)
         )
     }
 }

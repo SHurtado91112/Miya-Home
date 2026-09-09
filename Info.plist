@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Keeps audio playing when Miya is backgrounded or the screen locks. This
+	     has to live in a real plist: Xcode's GENERATE_INFOPLIST_FILE has no
+	     INFOPLIST_KEY_ equivalent for UIBackgroundModes, so the generated keys
+	     are merged into this file instead. Everything else still comes from the
+	     INFOPLIST_KEY_* build settings.
+
+	     It sits outside Miya/ deliberately: that folder is a synchronized root
+	     group, so a plist inside it is also copied as a bundle resource and
+	     collides with the processed Info.plist ("Multiple commands produce"). -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+</dict>
+</plist>

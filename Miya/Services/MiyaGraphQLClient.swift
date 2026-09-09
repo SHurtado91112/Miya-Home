@@ -35,6 +35,10 @@ struct MiyaGraphQLClient {
     /// need; `GQLSectionEntry` decodes them as optionals.
     private static let mediaFields =
         "id slug title subtitle systemImage detail imageUrl thumbnailUrl author { id slug name } album { slug }"
+    /// Song-only additions: the Range-capable stream URL served from
+    /// `/media/{id}` and the track length. Neither field exists on `Photo`,
+    /// which is why the shared scalars above stay a separate constant.
+    private static let songFields = "\(mediaFields) audioUrl durationSeconds"
     /// Album-card fields for a `SectionEntry`. `items(first: 3)` is a small cover
     /// preview (`imageUrl` / `thumbnailUrl` are on the `MediaItem` interface) so
     /// the grid can fan a `StackedCoverCard` without loading the album.
@@ -46,7 +50,7 @@ struct MiyaGraphQLClient {
     /// A `SectionEntry` selection that includes album cards (sections, search).
     private static let sectionEntryNodes = """
               __typename
-              ... on Song  { \(mediaFields) }
+              ... on Song  { \(songFields) }
               ... on Photo { \(mediaFields) }
               ... on Album { \(albumEntryFields) }
     """
@@ -54,7 +58,7 @@ struct MiyaGraphQLClient {
     /// A media-only selection (an album's / author's items are songs & photos).
     private static let mediaEntryNodes = """
               __typename
-              ... on Song  { \(mediaFields) }
+              ... on Song  { \(songFields) }
               ... on Photo { \(mediaFields) }
     """
 

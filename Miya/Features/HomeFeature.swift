@@ -106,12 +106,14 @@ struct HomeFeature {
                 return pushSectionDetail(sectionID, autoFocusSearch: true, state: &state)
 
             case let .view(.itemTapped(id)):
-                guard let item = state.sections.lazy.compactMap({ $0.items[id: id] }).first
+                guard let section = state.sections.first(where: { $0.items[id: id] != nil }),
+                      let item = section.items[id: id]
                 else { return .none }
-                return openItem(item, state: &state)
+                // The whole section, not just the `previewLimit` cards on screen.
+                return openItem(item, siblings: section.items, state: &state)
 
-            case let .path(.element(id: _, action: .sectionDetail(.delegate(.itemTapped(item))))):
-                return openItem(item, state: &state)
+            case let .path(.element(id: elementID, action: .sectionDetail(.delegate(.itemTapped(item))))):
+                return openItem(item, siblings: siblings(at: elementID, state: state), state: &state)
 
             case let .path(.element(id: _, action: .sectionDetail(.delegate(.authorTapped(ref))))):
                 return showAuthorDetail(ref, state: &state)
@@ -119,11 +121,11 @@ struct HomeFeature {
             case let .path(.element(id: _, action: .albumDetail(.delegate(.authorTapped(ref))))):
                 return showAuthorDetail(ref, state: &state)
 
-            case let .path(.element(id: _, action: .albumDetail(.delegate(.itemTapped(item))))):
-                return openItem(item, state: &state)
+            case let .path(.element(id: elementID, action: .albumDetail(.delegate(.itemTapped(item))))):
+                return openItem(item, siblings: siblings(at: elementID, state: state), state: &state)
 
-            case let .path(.element(id: _, action: .authorDetail(.delegate(.itemTapped(item))))):
-                return openItem(item, state: &state)
+            case let .path(.element(id: elementID, action: .authorDetail(.delegate(.itemTapped(item))))):
+                return openItem(item, siblings: siblings(at: elementID, state: state), state: &state)
 
             case let .path(.element(id: _, action: .authorDetail(.delegate(.albumTapped(album))))):
                 return showAlbumDetail(album, state: &state)
@@ -212,7 +214,27 @@ struct HomeFeature {
         return .none
     }
 
-    private func openItem(_ item: HomeSectionItem, state: inout State) -> Effect<Action> {
+    /// The list a tapped item came from, read back off the stack element that
+    /// reported it — so the three detail features keep their one-item delegate
+    /// payload and only this reducer knows about queues.
+    private func siblings(
+        at elementID: StackElementID,
+        state: State
+    ) -> IdentifiedArrayOf<HomeSectionItem> {
+        switch state.path[id: elementID] {
+        case let .albumDetail(child): return child.album.items
+        case let .authorDetail(child): return child.items
+        // Honours the active search: queue what the grid is actually showing.
+        case let .sectionDetail(child): return child.displayedItems
+        case .none: return []
+        }
+    }
+
+    private func openItem(
+        _ item: HomeSectionItem,
+        siblings: IdentifiedArrayOf<HomeSectionItem> = [],
+        state: inout State
+    ) -> Effect<Action> {
         switch item.kind {
         case .album:
             if let album = state.albums[id: item.id] {
@@ -225,11 +247,17 @@ struct HomeFeature {
             } catch: { error, _ in
                 reportIssue(error, "HomeClient.loadAlbumNode failed")
             }
-        case .song, .photo:
+        case .photo:
             // Fold into any existing preview so a pending song/photo of the
             // other kind stays alive.
             state.preview = MediaPreview.opening(item, into: state.preview)
             return .none
+        case .song:
+            state.preview = MediaPreview.opening(item, siblings: siblings, into: state.preview)
+            // Present first, then start: the player effect belongs to the child
+            // reducer, not to a view, so it survives collapsing the sheet back
+            // to the mini bar (which tears `SongPreviewView` down).
+            return .send(.preview(.presented(.song(.start))))
         }
     }
 
@@ -286,6 +314,14 @@ struct HomeSectionItem: Identifiable, Equatable, Codable, Sendable {
     /// grid can render the fanned `StackedCoverCard` without loading the full
     /// album. Server-provided thumbnails when available; server-only.
     var coverPreviewURLs: [URL] = []
+    /// For `kind == .song`: an absolute, Range-capable stream URL (`/media/{id}`),
+    /// which is what lets `AVPlayer` seek without downloading the whole file.
+    /// Server-only, and `nil` even there for a song with no ingested audio file —
+    /// `AudioTrack.init(item:…)` falls back to a bundled test track.
+    var audioURL: URL? = nil
+    /// Track length in seconds when the server knows it. `nil` ⇒ read it off the
+    /// `AVPlayerItem` once it's ready to play.
+    var duration: TimeInterval? = nil
 
     /// Thumbnail if the server sent one, else the full image — the URL to use
     /// wherever the item renders small (grid card, cover fan, mini bar).
