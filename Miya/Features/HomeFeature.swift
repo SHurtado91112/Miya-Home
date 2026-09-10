@@ -49,8 +49,18 @@ struct HomeFeature {
             case moreTapped(sectionID: HomeSection.ID)
             case searchTapped(sectionID: HomeSection.ID)
             case itemTapped(id: HomeSectionItem.ID)
+            case signOutTapped
         }
+
+        @CasePathable
+        enum Delegate {
+            /// Sign-out is the root's business -- it has to tear down this
+            /// feature's own state -- so Home only reports the intent.
+            case signOutRequested
+        }
+
         case view(View)
+        case delegate(Delegate)
         case sectionsResponse(IdentifiedArrayOf<HomeSection>)
         case albumsResponse(Page<Album>)
         case albumFetched(Album)
@@ -65,6 +75,12 @@ struct HomeFeature {
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
+            case .view(.signOutTapped):
+                return .send(.delegate(.signOutRequested))
+
+            case .delegate:
+                return .none
+
             case .view(.onAppear):
                 guard state.sections.isEmpty else { return .none }
                 return .run { send in
