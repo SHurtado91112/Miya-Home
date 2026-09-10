@@ -22,6 +22,12 @@ import Foundation
 
 struct MiyaGraphQLClient {
     let baseURL: URL
+    /// Bearer token for each request. Defaults to none so fixture-mode and any
+    /// future unauthenticated caller still compile and behave as before.
+    var accessToken: @Sendable () async throws -> String? = { nil }
+    /// Invoked once on a 401, before the single retry, so the token store can
+    /// drop the credential the server just refused.
+    var onUnauthorized: @Sendable () async -> Void = {}
 
     /// Page size requested from every connection. Must stay `>=`
     /// `HomeFeature.previewLimit` so the Home grid's "More" affordance still has
@@ -326,16 +332,33 @@ struct MiyaGraphQLClient {
     }
 
 
+    /// `allowRetry` bounds the 401 path to a single retry. Recursion without
+    /// it would loop forever against a server that rejects even a freshly
+    /// minted token.
     private func execute<V: Encodable, T: Decodable>(
         _ query: String,
-        variables: V
+        variables: V,
+        allowRetry: Bool = true
     ) async throws -> T {
         var request = URLRequest(url: baseURL.appendingPathComponent("graphql"))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let token = try await accessToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
         request.httpBody = try JSONEncoder().encode(GraphQLRequest(query: query, variables: variables))
 
-        let (responseData, _) = try await URLSession.shared.data(for: request)
+        // The response used to be discarded, which made a 401 indistinguishable
+        // from a malformed body -- the server returns a real status precisely so
+        // this can refresh instead of showing an empty screen.
+        let (responseData, response) = try await URLSession.shared.data(for: request)
+
+        if (response as? HTTPURLResponse)?.statusCode == 401 {
+            guard allowRetry else { throw AuthError.sessionExpired }
+            await onUnauthorized()
+            return try await execute(query, variables: variables, allowRetry: false)
+        }
+
         let decoded = try JSONDecoder().decode(GraphQLResponse<T>.self, from: responseData)
 
         if let errors = decoded.errors, !errors.isEmpty {

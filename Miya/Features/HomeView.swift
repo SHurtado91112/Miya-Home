@@ -74,6 +74,19 @@ struct HomeView: View {
                 }
             }
             .onAppear { send(.onAppear) }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button("Sign Out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
+                            send(.signOutTapped)
+                        }
+                    } label: {
+                        Image(systemName: "person.crop.circle")
+                    }
+                    .barButtonFont()
+                    .accessibilityLabel("Account")
+                }
+            }
         } destination: { pathStore in
             switch pathStore.case {
             case let .sectionDetail(sectionStore):

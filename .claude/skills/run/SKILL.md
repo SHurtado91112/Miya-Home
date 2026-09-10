@@ -32,6 +32,14 @@ xcrun simctl install booted "$(xcodebuild -project Miya.xcodeproj -scheme Miya -
 xcrun simctl launch booted com.hurtado.Miya
 ```
 
+To run against a real MiyaServer instead of the bundled JSON fixtures, pass the
+server URL with a `SIMCTL_CHILD_` prefix — `simctl launch` does **not** inherit
+the scheme's environment variables, so a plain launch always lands in fixture
+mode (and skips the sign-in wall):
+```
+SIMCTL_CHILD_MIYA_SERVER_URL=https://<lan-ip>:8000 xcrun simctl launch booted com.hurtado.Miya
+```
+
 ## 4. Verify
 
 - Take a screenshot to confirm the UI rendered as expected:

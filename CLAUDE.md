@@ -43,6 +43,31 @@ Songs get their stream URL from the server's `Song.audioUrl`; `AudioTrack.init(i
 
 `HomeFeature` is the reference example: `@Reducer` with `@ObservableState` `State` (`title`, `sections: IdentifiedArrayOf<HomeSection>`), a nested `View` action enum consumed via `@ViewAction`, and placeholder `sections` seeded in `State.init` (to be replaced by an `@Dependency`-loaded client when real data exists). `ContentView` owns the root `Store` in `@State` and passes it to `HomeView`.
 
+## Authentication
+
+Google SSO, with **no third-party SDK** — `ASWebAuthenticationSession` + OAuth 2.0 PKCE (RFC 8252), Keychain via the Security framework. An iOS OAuth client is a *public client*: Google issues no client secret for it, and PKCE is what authenticates the exchange, so the SDK buys nothing that isn't in `Services/GoogleOAuth.swift` + `Services/PKCE.swift`.
+
+The authorization code is redeemed **server-side**. The device sends `code` + `code_verifier` + `nonce` to MiyaServer, which calls Google, verifies the `id_token` (signature, `iss`, `aud`, `exp`, `nonce`, `email_verified`), and returns Miya's own credentials. Google's tokens never touch the phone; the only credentials on device are ones the server can revoke.
+
+Three rules keep this correct:
+
+- **No secrets in TCA `State` or `Action`.** TCA prints actions through CustomDump (`_printChanges`, `TestStore` diffs, `reportIssue`), so a `Session` in an action is both tokens in the Xcode console and in CI logs. Reducers deal only in `UserProfile`; `Session` lives in the Keychain and inside the `SessionStore` actor. `Session` also has a redacting `CustomDumpStringConvertible`.
+- **The fixture-mode bypass is `#if DEBUG` only** (`Services/RunMode.swift`). `MIYA_SERVER_URL` is set solely in the Debug scheme's `LaunchAction`, so it is absent from Release, TestFlight, and the App Store — a runtime-only "no server ⇒ no wall" check would ship an app with no authentication at all.
+- **Refresh is single-flight.** `HomeFeature.view(.onAppear)` fires `loadSections` and `loadAlbums` concurrently, so two callers routinely hit the same expired token. Refresh tokens are single-use and rotated, so a double redemption reads as a replay and revokes every session for that user. `SessionStore.refresh(presenting:)` makes concurrent callers join one task.
+
+`AuthClient` is the only seam reducers and `HomeClient` touch. `AppFeature` is the root: an `@ObservableState` **enum** (`@CasePathable` must be written explicitly — `@ObservableState` does not add it, and `ifCaseLet` requires it) so signing out *destroys* `HomeFeature.State` rather than leaving the previous user's library in memory. Sign-out also has to stop audio explicitly — `ifCaseLet` cancels the child's effects, but `AudioPlayerEngine` is a separate `@MainActor` singleton and would keep playing over the sign-in screen.
+
+`MiyaGraphQLClient.execute` attaches `Authorization: Bearer` and retries **once** on a 401 (`allowRetry`, not recursion). The server returns a genuine HTTP 401 rather than Strawberry's default 200-with-`errors[]`, because the client cannot tell an auth failure from an ordinary query error otherwise, and would never refresh.
+
+`/media` bytes are protected by **signed URLs**, not the bearer token: `AVPlayer` and `AsyncImage` fetch those URLs directly and attach no headers of ours. The server HMACs each `/media` path with an expiry (bucketed to the hour so the URL stays stable and the `immutable` cache header still works). No iOS code is involved — the signed URL simply arrives inside an already-authenticated GraphQL response.
+
+**Setup.** Create an *iOS* OAuth client for `com.hurtado.Miya` in the Google Cloud Console, then put the client id in `MiyaGoogleClientID` and its reversed form in `CFBundleURLSchemes` — both in the **root** `Info.plist`, for the same reason `UIBackgroundModes` lives there (no `INFOPLIST_KEY_` equivalent, and a plist inside the synchronized group double-copies). Set `GOOGLE_IOS_CLIENT_ID`, `JWT_SECRET`, and `MEDIA_URL_SECRET` in MiyaServer's `.env`.
+
+**Testing against a real server:** `xcrun simctl launch` does **not** inherit the scheme's environment, so pass `SIMCTL_CHILD_MIYA_SERVER_URL=…`. On the Simulator, mkcert's root CA is not trusted (it was trusted on the *device*), so either `xcrun simctl keychain booted add-root-cert "$(mkcert -CAROOT)/rootCA.pem"` or test sign-in on device. Unlike Sign in with Apple, this flow does work on the Simulator.
+
+**Guideline 4.8:** shipping Google as the only login is an App Store rejection risk — an app offering third-party SSO must also offer a login limiting data to name and email. `SignInFeature.Provider` is an enum over a list of buttons precisely so Sign in with Apple is one more case, not a rewrite. It needs the `com.apple.developer.applesignin` entitlement and a paid Developer Program membership.
+
+
 ## Development principles
 
 Use the most modern Swift, SwiftUI, and architecture practices for all new code:

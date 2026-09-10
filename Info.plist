@@ -15,5 +15,34 @@
 	<array>
 		<string>audio</string>
 	</array>
+
+	<!-- Google OAuth client for sign-in. This is the *iOS* OAuth 2.0 Client ID
+	     from the Google Cloud Console for bundle id com.hurtado.Miya; the
+	     CFBundleURLSchemes entry below is the same id with its dot-separated
+	     components reversed (the redirect URL scheme Google expects).
+
+	     This is not a secret. An iOS OAuth client is a "public client": Google
+	     issues no client secret for it at all, and PKCE -- not a shared
+	     secret -- is what authenticates the token exchange. Committing it is
+	     both safe and how Google's own setup instructions expect it to be done.
+
+	     CFBundleURLTypes has no INFOPLIST_KEY_ equivalent either, which is the
+	     same reason UIBackgroundModes lives here. -->
+	<key>MiyaGoogleClientID</key>
+	<string>312032168160-mhe62ch2o17sjn6hcm0qqiatdlv2hdq2.apps.googleusercontent.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.hurtado.Miya.google-oauth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- The client ID with its dot-separated components reversed. -->
+				<string>com.googleusercontent.apps.312032168160-mhe62ch2o17sjn6hcm0qqiatdlv2hdq2</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

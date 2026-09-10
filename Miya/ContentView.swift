@@ -9,20 +9,21 @@ import ComposableArchitecture
 import SwiftUI
 
 struct ContentView: View {
-    @State var store = Store(initialState: HomeFeature.State(title: "Miya")) {
-        HomeFeature()
+    @State var store = Store(initialState: AppFeature.State()) {
+        AppFeature()
     }
 
     var body: some View {
-        HomeView(store: store)
+        AppView(store: store)
     }
 }
 
 #Preview {
-    HomeView(
-        store: Store(initialState: HomeFeature.State(title: "Miya")) {
-            HomeFeature()
+    AppView(
+        store: Store(initialState: AppFeature.State()) {
+            AppFeature()
         } withDependencies: {
+            $0.authClient = .previewValue
             $0.homeClient = .previewValue
         }
     )

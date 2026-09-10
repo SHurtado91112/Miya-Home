@@ -35,8 +35,20 @@ extension HomeClient: DependencyKey {
     /// When `MIYA_SERVER_URL` is set in the run environment (see the Debug scheme's
     /// LaunchAction), fetch live data from a local MiyaServer over the LAN instead
     /// of the bundled JSON fixtures. Used for on-device testing.
-    private static var serverURL: URL? {
-        ProcessInfo.processInfo.environment["MIYA_SERVER_URL"].flatMap(URL.init)
+    ///
+    /// Built here rather than inside each of the seven closures below so the
+    /// bearer token is wired in exactly once -- threading it through seven
+    /// separate construction sites is seven chances to leave one unauthenticated.
+    /// `@Dependency` is resolved inside the closure so `withDependencies` and
+    /// `TestStore` overrides still apply.
+    private static func graphQL() -> MiyaGraphQLClient? {
+        guard let serverURL = RunMode.serverURL else { return nil }
+        @Dependency(\.authClient) var authClient
+        return MiyaGraphQLClient(
+            baseURL: serverURL,
+            accessToken: { try await authClient.accessToken() },
+            onUnauthorized: { await authClient.invalidateAccessToken() }
+        )
     }
 
     private static func bundledSections() throws -> [HomeSection] {
@@ -130,13 +142,13 @@ extension HomeClient: DependencyKey {
     }
 
     static let liveValue = HomeClient {
-        if let serverURL {
-            return try await MiyaGraphQLClient(baseURL: serverURL).loadSections()
+        if let graphQL = graphQL() {
+            return try await graphQL.loadSections()
         }
         return IdentifiedArray(uniqueElements: try bundledSections())
     } loadAlbums: { after in
-        if let serverURL {
-            return try await MiyaGraphQLClient(baseURL: serverURL).loadAlbums(after: after)
+        if let graphQL = graphQL() {
+            return try await graphQL.loadAlbums(after: after)
         }
         // Bundled fixtures aren't paginated — return everything as a single page.
         return Page(
@@ -145,34 +157,30 @@ extension HomeClient: DependencyKey {
             hasMore: false
         )
     } loadAlbumItems: { albumNodeID, after in
-        if let serverURL {
-            return try await MiyaGraphQLClient(baseURL: serverURL)
-                .loadAlbumItems(albumNodeID: albumNodeID, after: after)
+        if let graphQL = graphQL() {
+            return try await graphQL.loadAlbumItems(albumNodeID: albumNodeID, after: after)
         }
         // The bundled fixtures aren't paginated (an album's `itemsHasMore` is
         // never set), so this is unreachable in practice.
         return .empty
     } loadAlbumNode: { nodeID in
-        if let serverURL {
-            return try await MiyaGraphQLClient(baseURL: serverURL).loadAlbumNode(nodeID: nodeID)
+        if let graphQL = graphQL() {
+            return try await graphQL.loadAlbumNode(nodeID: nodeID)
         }
         throw HomeClientError.resourceMissing
     } search: { query, sectionID, after in
-        if let serverURL {
-            return try await MiyaGraphQLClient(baseURL: serverURL)
-                .search(query: query, sectionSlug: sectionID, after: after)
+        if let graphQL = graphQL() {
+            return try await graphQL.search(query: query, sectionSlug: sectionID, after: after)
         }
         return try localSearch(query: query, sectionID: sectionID)
     } loadAuthorItems: { authorID, after in
-        if let serverURL {
-            return try await MiyaGraphQLClient(baseURL: serverURL)
-                .loadAuthorItems(authorNodeID: authorID, after: after)
+        if let graphQL = graphQL() {
+            return try await graphQL.loadAuthorItems(authorNodeID: authorID, after: after)
         }
         return try localAuthorItems(authorID: authorID)
     } loadAuthorAlbums: { authorID in
-        if let serverURL {
-            return try await MiyaGraphQLClient(baseURL: serverURL)
-                .loadAuthorAlbums(authorNodeID: authorID)
+        if let graphQL = graphQL() {
+            return try await graphQL.loadAuthorAlbums(authorNodeID: authorID)
         }
         return try localAuthorAlbums(authorID: authorID)
     }
